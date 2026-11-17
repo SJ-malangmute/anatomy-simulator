@@ -1,6 +1,6 @@
 import type { LayerId, Visibility } from '../types';
 
-/** 바깥(얕은 층)부터 안쪽(깊은 층) 순서 */
+/** 바깥(얕은 층)부터 안쪽(깊은 층) 순서. 몸통에서는 갈비뼈(뼈)를 벗겨야 내장이 보인다. */
 export const LAYERS: { id: LayerId; ko: string }[] = [
   { id: 'skin', ko: '피부' },
   { id: 'subcut', ko: '피하조직' },
@@ -8,7 +8,8 @@ export const LAYERS: { id: LayerId; ko: string }[] = [
   { id: 'fascia', ko: '근막' },
   { id: 'muscle', ko: '근육' },
   { id: 'neurovascular', ko: '신경·혈관' },
-  { id: 'bone', ko: '뼈' },
+  { id: 'bone', ko: '뼈·연골' },
+  { id: 'organ', ko: '내장' },
 ];
 
 export const ALL_SHOWN: Record<LayerId, Visibility> = {
@@ -19,6 +20,7 @@ export const ALL_SHOWN: Record<LayerId, Visibility> = {
   muscle: 'show',
   neurovascular: 'show',
   bone: 'show',
+  organ: 'show',
 };
 
 export const layerIndex = (id: LayerId) => LAYERS.findIndex((l) => l.id === id);

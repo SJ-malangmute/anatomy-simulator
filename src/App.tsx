@@ -54,18 +54,33 @@ export default function App() {
         <header>
           <h1>해부 실습 시뮬레이터</h1>
           <span className="badge">프로토타입 · BodyParts3D 기반</span>
-          <div className="seg wide region-switch" role="radiogroup" aria-label="부위">
-            {REGIONS.map((r) => (
+          <div className="region-picker" role="radiogroup" aria-label="부위">
+            {REGIONS.filter((r) => r.group === 'all').map((r) => (
               <button
                 key={r.id}
                 role="radio"
                 aria-checked={region === r.id}
-                className={region === r.id ? 'on' : ''}
+                className={`region-all ${region === r.id ? 'on' : ''}`}
                 onClick={() => setRegion(r.id)}
               >
-                오른쪽 {r.ko}
+                {r.ko}
               </button>
             ))}
+            <div className="region-grid">
+              {REGIONS.filter((r) => r.group !== 'all').map((r) => (
+                <button
+                  key={r.id}
+                  role="radio"
+                  aria-checked={region === r.id}
+                  className={region === r.id ? 'on' : ''}
+                  onClick={() => setRegion(r.id)}
+                  title={r.rightOnly ? `오른쪽 ${r.ko}` : r.ko}
+                >
+                  {r.ko}
+                </button>
+              ))}
+            </div>
+            <p className="muted small region-note">어깨·위팔·아래팔·손은 오른쪽 모델입니다.</p>
           </div>
         </header>
         <nav className="tabs" role="tablist">

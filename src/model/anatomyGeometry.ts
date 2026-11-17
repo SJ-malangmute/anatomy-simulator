@@ -18,14 +18,21 @@ interface RegionMeta {
   note: string;
   halfLength: number;
   tiltDeg: number;
-  meanSkinRadius: number;
-  envelope: { angles: number; rows: number; skin: number[][]; subcut: number[][]; fascia: number[][] };
+  /** 부위 전체가 화면에 들어오는 카메라 거리 (cm) */
+  viewDistance: number;
+  /** 생성한 피부층 껍질. 위팔·아래팔에만 있고 나머지는 null */
+  meanSkinRadius: number | null;
+  envelope: { angles: number; rows: number; skin: number[][]; subcut: number[][]; fascia: number[][] } | null;
   fma: Record<string, string[]>;
   groups: Record<string, string[]>;
+  /** 상체 전체: 왼쪽으로 대칭 복사해 보여 줄 오른팔 구조물 */
+  mirror?: string[];
   veinLines: Record<string, Vec3[]>;
   nerves: Record<string, Vec3[]>;
   pins: Record<string, Vec3>;
 }
+
+const NO_ENVELOPE = { angles: 1, rows: 1, skin: [[0]], subcut: [[0]], fascia: [[0]] };
 
 const deg = (d: number) => (d * Math.PI) / 180;
 const toVec = (p: Vec3) => new THREE.Vector3(p[0], p[1], p[2]);
@@ -45,11 +52,12 @@ const NERVE_RADIUS: Record<string, number> = {
 function makeRegionGeometry(regionId: RegionId) {
   const meta = REGION_BY_ID[regionId].meta as RegionMeta;
   const HALF = meta.halfLength;
-  const { angles: ANG, rows: ROWS } = meta.envelope;
+  const envelope = meta.envelope ?? NO_ENVELOPE;
+  const { angles: ANG, rows: ROWS } = envelope;
 
-  /** 껍질 반지름: φ(0 = 앞 정중선, + = 안쪽)와 높이 y에서 겹선형 보간 */
+  /** 껍질 반지름: φ(0 = 앞 정중선, + = 안쪽)와 높이 y에서 겹선형 보간 (피부층이 없는 부위는 0) */
   const shellRadiusAt = (kind: ShellKind, phiDeg: number, y: number) => {
-    const grid = meta.envelope[kind];
+    const grid = envelope[kind];
     const a = ((((phiDeg % 360) + 360) % 360) / 360) * ANG;
     const j = Math.min(ROWS - 1, Math.max(0, ((y + HALF) / (2 * HALF)) * (ROWS - 1)));
     const a0 = Math.floor(a) % ANG;
@@ -101,7 +109,11 @@ function makeRegionGeometry(regionId: RegionId) {
     meta,
     modelUrl: `${import.meta.env.BASE_URL}${REGION_BY_ID[regionId].modelFile}`,
     halfLength: HALF,
-    skinRadius: meta.meanSkinRadius,
+    skinRadius: meta.meanSkinRadius ?? 0,
+    hasEnvelope: meta.envelope !== null,
+    viewDistance: meta.viewDistance,
+    /** 상체 전체에서 왼쪽에 대칭 복사해 그릴 구조물 */
+    mirrored: new Set(meta.mirror ?? []),
     shellRadiusAt,
     onShell,
     shellGeometry,
@@ -114,10 +126,14 @@ function makeRegionGeometry(regionId: RegionId) {
     /** 땡시 핀·라벨 위치. 피부층은 껍질 위 한 점. */
     pins: {
       ...Object.fromEntries(Object.entries(meta.pins).map(([id, p]) => [id, toVec(p)])),
-      skin: onShell('skin', 25, HALF * 0.3),
-      subcutaneous: onShell('subcut', 25, HALF * 0.3),
-      brachial_fascia: onShell('fascia', 25, HALF * 0.3),
-      antebrachial_fascia: onShell('fascia', 25, HALF * 0.3),
+      ...(meta.envelope
+        ? {
+            skin: onShell('skin', 25, HALF * 0.3),
+            subcutaneous: onShell('subcut', 25, HALF * 0.3),
+            brachial_fascia: onShell('fascia', 25, HALF * 0.3),
+            antebrachial_fascia: onShell('fascia', 25, HALF * 0.3),
+          }
+        : {}),
     } as Record<string, THREE.Vector3>,
     /** glb에 실제 메시가 있는 구조물인지 */
     isRealMesh: (id: string) => id in meta.fma,

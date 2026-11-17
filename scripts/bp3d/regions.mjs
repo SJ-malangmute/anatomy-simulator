@@ -6,7 +6,13 @@
 // deep:    피부·근막 껍질이 감쌀 깊은 구조물, veins: 근막 바깥(피하조직)의 표재정맥
 // nerves:  BodyParts3D에 없는 신경 경로를 실제 구조물 위치로 만드는 함수 (ctx는 build-region.mjs 참고)
 
+import { catalogFor } from './catalog.mjs';
+
 const lerp = (a, b, t) => a + (b - a) * t;
+
+/** catalog 항목을 BodyParts3D 영어 이름으로 찾는 source로 바꾼다 (FMA·OBJ 파일은 빌드 때 목록에서 찾음) */
+const fromCatalog = (region) =>
+  Object.fromEntries(catalogFor(region).map((e) => [e.id, e.bp3d.map((name) => ({ name }))]));
 
 export const REGIONS = {
   arm: {
@@ -174,4 +180,89 @@ export const REGIONS = {
       return out;
     },
   },
+
+  // ---------- 몸통·어깨·손 (catalog.mjs의 구조물) ----------
+  // straighten: false = 몸통은 이미 곧게 서 있어 축을 세우지 않는다. envelope: false = 생성한 피부층 없음.
+  neck: {
+    title: '목',
+    maxTris: 4000,
+    zLo: 1290,
+    zHi: 1500,
+    straighten: false,
+    envelope: false,
+    sources: fromCatalog('neck'),
+  },
+  shoulder: {
+    title: '오른쪽 어깨·겨드랑이',
+    maxTris: 4000,
+    zLo: 1150,
+    zHi: 1420,
+    straighten: false,
+    envelope: false,
+    // 어깨관절을 보이기 위해 위팔뼈 위끝을 함께 넣는다
+    sources: { ...fromCatalog('shoulder'), humerus: [['FMA23130', 'FJ3368']] },
+  },
+  back: {
+    title: '등',
+    maxTris: 4000,
+    zLo: 830,
+    zHi: 1510,
+    straighten: false,
+    envelope: false,
+    sources: fromCatalog('back'),
+  },
+  thorax: {
+    title: '가슴',
+    maxTris: 4000,
+    zLo: 990,
+    zHi: 1400,
+    straighten: false,
+    envelope: false,
+    sources: fromCatalog('thorax'),
+  },
+  abdomen: {
+    title: '배',
+    maxTris: 4000,
+    zLo: 780,
+    zHi: 1200,
+    straighten: false,
+    envelope: false,
+    sources: fromCatalog('abdomen'),
+  },
+  hand: {
+    title: '오른손',
+    zLo: 650,
+    zHi: 815,
+    axisFrom: ['metacarpal_2', 'metacarpal_3', 'metacarpal_4'],
+    axisZ: [730, 780],
+    envelope: false,
+    sources: {
+      ...fromCatalog('hand'),
+      // 아래팔 근육의 힘줄과 동맥이 손으로 이어지는 부분 (같은 구조물 id로 잘라 넣는다)
+      ...Object.fromEntries(
+        [
+          'flexor_digitorum_superficialis', 'flexor_digitorum_profundus', 'flexor_pollicis_longus', 'flexor_carpi_radialis',
+          'flexor_carpi_ulnaris', 'palmaris_longus', 'extensor_digitorum', 'extensor_digiti_minimi', 'extensor_indicis',
+          'extensor_pollicis_longus', 'extensor_pollicis_brevis', 'abductor_pollicis_longus', 'extensor_carpi_radialis_longus',
+          'extensor_carpi_radialis_brevis', 'extensor_carpi_ulnaris', 'radial_artery', 'ulnar_artery', 'cephalic_vein', 'basilic_vein',
+        ].map((id) => [id, null]),
+      ),
+    },
+  },
+};
+
+// 손 부위의 아래팔 구조물은 아래팔 설정의 source를 그대로 쓴다
+for (const [id, src] of Object.entries(REGIONS.hand.sources)) if (src === null) REGIONS.hand.sources[id] = REGIONS.forearm.sources[id];
+
+/** 상체 전체 보기: 모든 부위의 구조물을 원래 몸 위치에 모은다. 오른팔 구조물은 왼쪽으로 대칭 복사해 보여 준다. */
+export const COMBINED = {
+  id: 'upper_body',
+  title: '상체 전체',
+  zLo: 640,
+  zHi: 1500,
+  parts: ['neck', 'shoulder', 'back', 'thorax', 'abdomen', 'arm', 'forearm', 'hand'],
+  /** 오른쪽만 있는 부위 → 왼쪽은 대칭 복사 */
+  mirrorParts: ['shoulder', 'arm', 'forearm', 'hand'],
+  /** 신경 경로를 가져올 부위 (원래 좌표로 되돌려 쓴다) */
+  nerveParts: ['arm', 'forearm'],
 };

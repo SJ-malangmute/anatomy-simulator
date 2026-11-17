@@ -221,6 +221,9 @@ const CANDIDATES: Record<QuizKind, (region: RegionId) => QuizQuestion[]> = {
   },
 };
 
+/** 이 부위에서 낼 수 있는 문제 유형 (신경 모델이 없는 몸통 부위는 지배신경·신경 손상 문제가 없다) */
+export const availableKinds = (region: RegionId) => QUIZ_KINDS.map((k) => k.id).filter((k) => CANDIDATES[k](region).length > 0);
+
 function makeQuestions(region: RegionId, count: number, kinds: QuizKind[]): QuizQuestion[] {
   // 고른 유형의 모든 문제를 한 더미로 섞어 앞에서부터 낸다. 더미를 다 쓰기 전에는 같은 문제가 반복되지 않는다.
   const pool = () => shuffle(kinds.flatMap((k) => CANDIDATES[k](region)));
@@ -287,7 +290,7 @@ export function isGroupNameOnly(given: string, id: string) {
 let cameraNonce = 0;
 
 export const useStore = create<State>((set, get) => ({
-  region: 'arm',
+  region: 'upper_body',
   mode: 'explore',
   layerVis: { ...ALL_SHOWN },
   skinOpen: false,
@@ -297,7 +300,7 @@ export const useStore = create<State>((set, get) => ({
   tool: 'orbit',
   showGuide: true,
   message: null,
-  cameraRequest: null,
+  cameraRequest: { phi: 0, nonce: 0 },
   opacity: {},
   isolated: false,
 
@@ -340,8 +343,9 @@ export const useStore = create<State>((set, get) => ({
   setLayer: (id, v) => set((s) => ({ layerVis: { ...s.layerVis, [id]: v } })),
   peelOne: () => {
     const vis = get().layerVis;
-    const outer = LAYERS.find((l) => vis[l.id] !== 'hide' && l.id !== 'bone');
-    if (outer) set({ layerVis: { ...vis, [outer.id]: 'hide' } });
+    const present = new Set(structuresIn(get().region).map((s) => s.layer));
+    const visible = LAYERS.filter((l) => present.has(l.id) && vis[l.id] !== 'hide');
+    if (visible.length > 1) set({ layerVis: { ...vis, [visible[0].id]: 'hide' } });
   },
   coverAll: () => set({ layerVis: { ...ALL_SHOWN } }),
   // 선택이 바뀌면 "이 구조만 보기"는 풀린다
@@ -367,7 +371,8 @@ export const useStore = create<State>((set, get) => ({
     const x = pin.x + off[0];
     const z = pin.z + off[2];
     const phi = Math.hypot(x, z) < 0.5 ? 0 : (Math.atan2(x, z) * 180) / Math.PI;
-    set({ cameraRequest: { phi, nonce: ++cameraNonce, targetY: pin.y + off[1], distance: 30 } });
+    const dist = Math.max(20, regionGeometry(get().region).viewDistance * 0.65);
+    set({ cameraRequest: { phi, nonce: ++cameraNonce, targetY: pin.y + off[1], distance: dist } });
   },
   setOpacity: (id, value) => set((s) => ({ opacity: { ...s.opacity, [id]: Math.max(0, Math.min(1, value)) } })),
   resetOpacity: () => set({ opacity: {}, isolated: false }),
@@ -375,8 +380,9 @@ export const useStore = create<State>((set, get) => ({
 
   startDissection: (scenarioId) => {
     const region = get().region;
+    if (!scenariosIn(region).length) return; // 이 부위에는 시나리오가 없다 (패널에서 안내)
     const requested = scenarioById(scenarioId ?? get().scenarioId);
-    const scenario = requested.regionId === region ? requested : scenariosIn(region)[0] ?? requested;
+    const scenario = requested.regionId === region ? requested : scenariosIn(region)[0];
     set({
       ...sceneToState(scenario.steps[0].scene),
       scenarioId: scenario.id,
@@ -449,6 +455,11 @@ export const useStore = create<State>((set, get) => ({
       return;
     }
     if (mode !== 'dissect' || finishedAt) return;
+    // 시나리오가 없는 부위에서는 탐색처럼 정보만 보여 준다
+    if (!scenariosIn(get().region).length) {
+      set({ selected: id });
+      return;
+    }
     const step = scenarioById(scenarioId).steps[stepIndex];
     if (step.type !== 'identify') {
       set({ selected: id });

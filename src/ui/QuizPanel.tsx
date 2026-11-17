@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { STRUCTURE_BY_ID, structureName } from '../data/structures';
-import { QUIZ_KINDS, useStore, type QuizAnswer, type QuizKind, type QuizQuestion } from '../store';
+import { QUIZ_KINDS, availableKinds, useStore, type QuizAnswer, type QuizKind, type QuizQuestion } from '../store';
 
 /** 보기·정답이 구조물 id인 유형 */
 const ID_ANSWER: QuizKind[] = ['name', 'relation', 'injury'];
@@ -42,9 +42,13 @@ function reviewLine(a: QuizAnswer) {
 
 function Setup() {
   const startQuiz = useStore((s) => s.startQuiz);
+  const region = useStore((s) => s.region);
+  const available = availableKinds(region);
   const [count, setCount] = useState(10);
   const [sec, setSec] = useState(30);
-  const [kinds, setKinds] = useState<QuizKind[]>(QUIZ_KINDS.map((k) => k.id));
+  const [picked, setKinds] = useState<QuizKind[]>(QUIZ_KINDS.map((k) => k.id));
+  // 이 부위에서 낼 수 없는 유형은 고른 상태여도 빼고 시작한다
+  const kinds = picked.filter((k) => available.includes(k));
   const toggle = (k: QuizKind) => setKinds((ks) => (ks.includes(k) ? ks.filter((x) => x !== k) : [...ks, k]));
 
   return (
@@ -56,8 +60,15 @@ function Setup() {
       </p>
       <fieldset className="kind-list" aria-label="문제 유형">
         {QUIZ_KINDS.map((k) => (
-          <label key={k.id} className="check">
-            <input type="checkbox" checked={kinds.includes(k.id)} onChange={() => toggle(k.id)} /> {k.label}
+          <label key={k.id} className={`check ${available.includes(k.id) ? '' : 'muted'}`}>
+            <input
+              type="checkbox"
+              checked={available.includes(k.id) && picked.includes(k.id)}
+              disabled={!available.includes(k.id)}
+              onChange={() => toggle(k.id)}
+            />{' '}
+            {k.label}
+            {!available.includes(k.id) && <span className="small"> (이 부위 없음)</span>}
           </label>
         ))}
       </fieldset>

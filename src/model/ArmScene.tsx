@@ -99,40 +99,66 @@ function StructureMesh({ s, geo }: { s: Structure; geo: RegionGeometry }) {
   const sheet = s.kind === 'tissue' || s.kind === 'fascia';
   const look = useAppearance(s, sheet ? 0.93 : 1);
 
+  const mirrored = useMemo(() => (geo.mirrored.has(s.id) ? mirrorGeometry(geometry) : null), [geo, s.id, geometry]);
+
   if (look.hidden) return null;
   const clickable = look.clickable;
 
+  const body = (g: THREE.BufferGeometry, name: string) => (
+    <mesh
+      name={name}
+      geometry={g}
+      raycast={clickable ? THREE.Mesh.prototype.raycast : noRaycast}
+      onClick={(e: ThreeEvent<MouseEvent>) => {
+        e.stopPropagation();
+        click(s.id);
+      }}
+      onPointerOver={(e: ThreeEvent<PointerEvent>) => {
+        e.stopPropagation();
+        hover(s.id);
+      }}
+      onPointerOut={() => hover(null)}
+    >
+      <meshStandardMaterial
+        // 투명 여부가 바뀌면 셰이더를 다시 만들어야 해서 재마운트한다 (three.js는 불투명 재질을 OPAQUE로 컴파일)
+        key={look.transparent ? 't' : 'o'}
+        color={s.color}
+        transparent={look.transparent}
+        opacity={look.opacity}
+        depthWrite={look.depthWrite}
+        side={sheet ? THREE.DoubleSide : THREE.FrontSide}
+        roughness={s.kind === 'bone' || s.kind === 'cartilage' ? 0.85 : 0.55}
+        emissive={isSelected ? '#ffb000' : isHovered ? '#666666' : '#000000'}
+        emissiveIntensity={isSelected ? 0.45 : 0.25}
+      />
+    </mesh>
+  );
+
   return (
     <group ref={group}>
-      <mesh
-        name={s.id}
-        geometry={geometry}
-        raycast={clickable ? THREE.Mesh.prototype.raycast : noRaycast}
-        onClick={(e: ThreeEvent<MouseEvent>) => {
-          e.stopPropagation();
-          click(s.id);
-        }}
-        onPointerOver={(e: ThreeEvent<PointerEvent>) => {
-          e.stopPropagation();
-          hover(s.id);
-        }}
-        onPointerOut={() => hover(null)}
-      >
-        <meshStandardMaterial
-          // 투명 여부가 바뀌면 셰이더를 다시 만들어야 해서 재마운트한다 (three.js는 불투명 재질을 OPAQUE로 컴파일)
-          key={look.transparent ? 't' : 'o'}
-          color={s.color}
-          transparent={look.transparent}
-          opacity={look.opacity}
-          depthWrite={look.depthWrite}
-          side={sheet ? THREE.DoubleSide : THREE.FrontSide}
-          roughness={s.kind === 'bone' ? 0.85 : 0.55}
-          emissive={isSelected ? '#ffb000' : isHovered ? '#666666' : '#000000'}
-          emissiveIntensity={isSelected ? 0.45 : 0.25}
-        />
-      </mesh>
+      {body(geometry, s.id)}
+      {/* 상체 전체 보기: 오른팔 구조물을 정중선 기준으로 왼쪽에 대칭 복사 (같은 구조물로 선택된다) */}
+      {mirrored && body(mirrored, s.id)}
     </group>
   );
+}
+
+/** x를 뒤집은 복사본. 삼각형 감김 방향도 뒤집어 앞면이 바깥을 향하게 한다. */
+function mirrorGeometry(source: THREE.BufferGeometry) {
+  const g = source.clone();
+  g.scale(-1, 1, 1);
+  const index = g.getIndex();
+  if (index) {
+    const a = index.array as Uint32Array | Uint16Array;
+    for (let i = 0; i < a.length; i += 3) {
+      const t = a[i + 1];
+      a[i + 1] = a[i + 2];
+      a[i + 2] = t;
+    }
+    index.needsUpdate = true;
+  }
+  g.computeVertexNormals();
+  return g;
 }
 
 /** 피부는 절개선에서 두 장으로 갈라지고, 반대편 정중선을 경첩 삼아 젖혀진다 */
@@ -310,7 +336,8 @@ function QuizPin() {
     const dir = new THREE.Vector3(pin.x, 0, pin.z);
     if (dir.length() < 0.5) dir.set(0, 0, 1);
     dir.normalize();
-    camera.position.set(dir.x * 40, pin.y * 0.5 + 2, dir.z * 40);
+    const d = geo.viewDistance * 0.9;
+    camera.position.set(dir.x * d, pin.y * 0.5 + 2, dir.z * d);
     if (controls) {
       controls.target.set(0, pin.y * 0.5, 0);
       controls.update();
@@ -344,19 +371,20 @@ function DevSceneHook() {
 /** 시나리오 시작 등에서 요청한 방향(φ)으로 카메라를 옮긴다 */
 function CameraRig() {
   const request = useStore((st) => st.cameraRequest);
+  const geo = useGeo();
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls) as unknown as OrbitControlsImpl | null;
   useEffect(() => {
     if (!request) return;
     const rad = (request.phi * Math.PI) / 180;
-    const d = request.distance ?? 44;
+    const d = request.distance ?? geo.viewDistance;
     const y = request.targetY ?? 0;
     camera.position.set(d * Math.sin(rad), y + 2, d * Math.cos(rad));
     if (controls) {
       controls.target.set(0, y, 0);
       controls.update();
     }
-  }, [request, camera, controls]);
+  }, [request, camera, controls, geo]);
   return null;
 }
 
@@ -371,7 +399,7 @@ export function ArmScene() {
       <hemisphereLight args={['#ffffff', '#b9a99a', 0.7]} />
       <directionalLight position={[8, 12, 14]} intensity={1.2} />
       <directionalLight position={[-10, -4, -10]} intensity={0.45} />
-      <OrbitControls makeDefault enabled={tool === 'orbit'} target={[0, 0, 0]} minDistance={10} maxDistance={60} />
+      <OrbitControls makeDefault enabled={tool === 'orbit'} target={[0, 0, 0]} minDistance={geo.viewDistance * 0.15} maxDistance={geo.viewDistance * 2} />
       <CameraRig />
       {/* 방향 표시: +x 안쪽, +y 위, +z 앞 (오른팔). 축을 누르면 그쪽에서 보도록 돌아간다. */}
       <GizmoHelper alignment="bottom-right" margin={[64, 64]}>
@@ -390,7 +418,7 @@ export function ArmScene() {
           </Html>
         }
       >
-        <SkinFlaps key={`skin-${region}`} geo={geo} />
+        {geo.hasEnvelope && <SkinFlaps key={`skin-${region}`} geo={geo} />}
         {structures.map((s) => (
           <StructureMesh key={`${region}-${s.id}`} s={s} geo={geo} />
         ))}

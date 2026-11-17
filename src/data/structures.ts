@@ -1,5 +1,10 @@
 import type { RegionId, Structure } from '../types';
 import { FOREARM } from './structures-forearm';
+import catalogJson from './generated/catalog.json';
+import { regionHasEnvelope, regionHasMesh } from './regions';
+
+/** 목·어깨·등·가슴·배·손 구조물 (scripts/bp3d/catalog.mjs → catalog.json) */
+const CATALOG = catalogJson as unknown as Structure[];
 
 /**
  * 위팔(오른팔) 앞칸 해부 구조물.
@@ -310,6 +315,7 @@ export const STRUCTURES: Structure[] = [
     clinical: '몸통 골절 때는 노신경, 관절위 골절 때는 위팔동맥·정중신경 손상에 주의한다.',
   },
   ...FOREARM,
+  ...CATALOG,
 ];
 
 export const STRUCTURE_BY_ID: Record<string, Structure> = Object.fromEntries(
@@ -335,7 +341,19 @@ export const GROUPS: Record<string, { ko: string; en: string; la: string; aliase
 export const structureName = (id: string) => STRUCTURE_BY_ID[id]?.ko ?? GROUPS[id]?.ko ?? id;
 
 /** 이 부위에 나오는 구조물 */
-export const structuresIn = (region: RegionId) => STRUCTURES.filter((s) => s.regions.includes(region));
+/**
+ * 이 부위에 나오는 구조물: 부위 모델에 메시·신경 경로가 실제로 들어 있는 것 +
+ * 생성한 피부층이 있는 부위(위팔·아래팔)의 피부·피하조직·근막.
+ */
+export const structuresIn = (region: RegionId) =>
+  STRUCTURES.filter(
+    (s) =>
+      regionHasMesh(region, s.id) ||
+      (regionHasEnvelope(region) && ['skin', 'tissue', 'fascia'].includes(s.kind) && s.regions.includes(region)),
+  );
+
+/** 이 부위 모델에 들어 있는 구조물인지 */
+export const isInRegion = (region: RegionId, id: string) => structuresIn(region).some((s) => s.id === id);
 
 /** 구조물 자신이거나, 그 구조물이 속한 근육이면 true */
 export const matchesTarget = (id: string, target: string) => id === target || STRUCTURE_BY_ID[id]?.group === target;

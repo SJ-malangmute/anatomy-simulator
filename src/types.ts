@@ -1,4 +1,13 @@
-export type RegionId = 'arm' | 'forearm';
+export type RegionId =
+  | 'upper_body'
+  | 'neck'
+  | 'shoulder'
+  | 'thorax'
+  | 'back'
+  | 'abdomen'
+  | 'arm'
+  | 'forearm'
+  | 'hand';
 
 export type LayerId =
   | 'skin'
@@ -7,7 +16,8 @@ export type LayerId =
   | 'fascia'
   | 'muscle'
   | 'neurovascular'
-  | 'bone';
+  | 'bone'
+  | 'organ';
 
 export type Visibility = 'show' | 'ghost' | 'hide';
 
@@ -19,7 +29,9 @@ export type StructureKind =
   | 'artery'
   | 'vein'
   | 'nerve'
-  | 'bone';
+  | 'bone'
+  | 'cartilage'
+  | 'organ';
 
 export interface Structure {
   /** 내부 ID. 실제 에셋으로 교체할 때 fmaId와 연결한다. */

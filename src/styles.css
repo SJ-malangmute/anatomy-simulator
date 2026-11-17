@@ -50,8 +50,45 @@ body,
   margin: 0 0 6px;
 }
 
-.region-switch {
+.region-picker {
   margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.region-picker button {
+  font: inherit;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.region-picker button.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.region-all {
+  padding: 7px 0;
+}
+
+.region-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.region-grid button {
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.region-note {
+  margin: 0;
 }
 
 .badge {
@@ -628,6 +665,11 @@ p {
 .info-card dd {
   margin: 0;
   line-height: 1.5;
+}
+
+.detail-btn {
+  margin-top: 8px;
+  width: 100%;
 }
 
 .view-control {

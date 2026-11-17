@@ -95,6 +95,9 @@ export function ExplorePanel() {
   const resetOpacity = useStore((s) => s.resetOpacity);
   const changed = Object.entries(opacity).filter(([, v]) => v < 1);
   const hiddenCount = changed.filter(([, v]) => v === 0).length;
+  // 이 부위 모델에 실제로 있는 층만 보여 준다 (몸통·상체 전체에는 생성한 피부층이 없음)
+  const present = new Set(structuresIn(region).map((st) => st.layer));
+  const layers = LAYERS.filter((l) => present.has(l.id));
 
   return (
     <div className="panel">
@@ -111,7 +114,7 @@ export function ExplorePanel() {
 
       <h3>층</h3>
       <ul className="layer-list">
-        {LAYERS.map((l) => (
+        {layers.map((l) => (
           <li key={l.id}>
             <span>{l.ko}</span>
             <div className="seg" role="group" aria-label={`${l.ko} 표시`}>
@@ -140,7 +143,7 @@ export function ExplorePanel() {
           </button>
         </div>
       )}
-      {LAYERS.map((l) => {
+      {layers.map((l) => {
         const items = structuresIn(region).filter((s) => s.layer === l.id);
         if (!items.length) return null;
         return (

@@ -1,5 +1,6 @@
 import { structureName } from '../data/structures';
 import { scenariosIn, useScenario, useStore } from '../store';
+import { REGIONS, REGION_BY_ID } from '../data/regions';
 
 function ScenarioPicker() {
   const scenarioId = useStore((s) => s.scenarioId);
@@ -107,7 +108,37 @@ function IncisionControls() {
   );
 }
 
+/** 시나리오가 없는 부위: 시나리오가 있는 부위로 안내한다 */
+function NoScenario() {
+  const region = useStore((s) => s.region);
+  const setRegion = useStore((s) => s.setRegion);
+  const withScenarios = REGIONS.filter((r) => scenariosIn(r.id).length);
+  return (
+    <div className="panel">
+      <div className="card">
+        <h3>{REGION_BY_ID[region].ko}에는 해부 실습 시나리오가 아직 없습니다</h3>
+        <p className="muted">
+          지금은 탐색과 땡시로 공부할 수 있습니다. 해부 실습은 아래 부위에서 할 수 있어요.
+        </p>
+        <div className="row">
+          {withScenarios.map((r) => (
+            <button key={r.id} className="btn" onClick={() => setRegion(r.id)}>
+              오른쪽 {r.ko} ({scenariosIn(r.id).length}개)
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DissectPanel() {
+  const region = useStore((s) => s.region);
+  if (!scenariosIn(region).length) return <NoScenario />;
+  return <ScenarioRunner />;
+}
+
+function ScenarioRunner() {
   const { stepIndex, finishedAt, actionDone, performAction, nextStep, found, damages } = useStore();
   const scenario = useScenario();
   const step = scenario.steps[stepIndex];

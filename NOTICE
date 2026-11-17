@@ -8,6 +8,8 @@ They are adapted from:
   licensed under CC Attribution 4.0 International
   https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html
 
-Changes: cropped to the right upper arm and forearm, straightened along the bone axis,
-converted from mm to cm and from OBJ to glTF; skin/fascia shells and nerve
+Changes: cropped into upper-body regions (neck, shoulder, thorax, back, abdomen,
+right arm, forearm, hand), limb regions straightened along the bone axis, large
+meshes decimated with meshoptimizer, converted from mm to cm and from OBJ to
+glTF; the combined view mirrors the right limb to show the left; skin/fascia shells and nerve
 paths were generated and are approximations.
