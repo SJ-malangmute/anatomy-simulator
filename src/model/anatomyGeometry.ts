@@ -22,7 +22,7 @@ interface ArmMeta {
 }
 
 export const META = metaJson as unknown as ArmMeta;
-export const MODEL_URL = '/models/arm.glb';
+export const MODEL_URL = `${import.meta.env.BASE_URL}models/arm.glb`;
 export const ARM_HALF = META.halfLength;
 export const SKIN_R = META.meanSkinRadius;
 

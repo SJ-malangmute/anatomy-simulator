@@ -5,6 +5,8 @@
 > 뼈·근육·동맥·표재정맥은 **BodyParts3D 실제 메시**입니다.
 > 피부·피하조직·근막 껍질과 신경 4개는 BodyParts3D에 위팔용 메시가 없어 실제 구조물 위치에 맞춰 **생성한 근사치**입니다.
 
+**바로 써 보기:** https://sj-malangmute.github.io/anatomy-simulator/
+
 ## 실행
 
 ```bash
@@ -13,6 +15,11 @@ npm run dev
 ```
 
 http://localhost:5173 에서 열립니다. 변환된 모델(`public/models/arm.glb`, `src/data/generated/arm-meta.json`)이 저장소에 포함되어 있어 바로 실행됩니다.
+
+## 배포
+
+`main`에 push하면 GitHub Actions(`.github/workflows/deploy.yml`)가 빌드해 GitHub Pages에 올립니다.
+빌드는 상대 경로(`base: './'`)라 Pages 하위 경로와 로컬에서 모두 동작합니다.
 
 ## 3D 모델 다시 만들기
 
