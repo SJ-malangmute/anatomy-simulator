@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import * as THREE from 'three';
 import type { LayerId, Scenario, SceneState, Visibility } from './types';
 import { ALL_SHOWN, LAYERS, layerIndex } from './data/layers';
-import { STRUCTURES, STRUCTURE_BY_ID, structureName } from './data/structures';
+import { GROUPS, STRUCTURES, STRUCTURE_BY_ID, matchesTarget, structureName } from './data/structures';
 import scenarioJson from './data/scenarios/anterior-arm.json';
 import { evaluateIncision, type IncisionResult } from './lib/incision';
 
@@ -23,6 +23,8 @@ export interface QuizAnswer {
   given: string;
   correct: boolean;
   timedOut: boolean;
+  /** 근육 이름은 맞았지만 갈래를 빠뜨린 경우 */
+  partial?: boolean;
 }
 
 export interface QuizState {
@@ -151,6 +153,15 @@ export function isCorrectName(given: string, id: string) {
   return [s.ko, s.en, s.la, ...(s.aliases ?? [])].some((n) => normalize(n) === g);
 }
 
+/** 갈래 문제에 근육 이름만 답했는지 */
+export function isGroupNameOnly(given: string, id: string) {
+  const group = STRUCTURE_BY_ID[id]?.group;
+  if (!group) return false;
+  const gr = GROUPS[group];
+  const g = normalize(given);
+  return !!g && [gr.ko, gr.en, gr.la, ...gr.aliases].some((n) => normalize(n) === g);
+}
+
 export const useStore = create<State>((set, get) => ({
   mode: 'explore',
   layerVis: { ...ALL_SHOWN },
@@ -275,14 +286,21 @@ export const useStore = create<State>((set, get) => ({
     }
     // 젖혀 둔 피부판은 배경이므로 오답으로 세지 않는다
     if (id === 'skin') return;
-    if (step.targets.includes(id)) {
-      if (!found.includes(id)) {
-        const next = [...found, id];
+    // 시나리오는 근육 단위(예: 위팔두갈래근)로 찾게 하므로, 어느 갈래를 눌러도 그 근육을 찾은 것으로 본다
+    const target = step.targets.find((t) => matchesTarget(id, t));
+    if (target) {
+      if (!found.includes(target)) {
+        const next = [...found, target];
         set({ found: next, selected: id });
+        const detail = target !== id ? ` (${structureName(id)})` : '';
         get().say(
-          next.length === step.targets.length ? '모두 찾았습니다. 다음 단계로 넘어가세요.' : `정답: ${structureName(id)}`,
+          next.length === step.targets.length
+            ? '모두 찾았습니다. 다음 단계로 넘어가세요.'
+            : `정답: ${structureName(target)}${detail}`,
           'good',
         );
+      } else {
+        set({ selected: id });
       }
     } else {
       set((s) => ({ wrongClicks: s.wrongClicks + 1, selected: id }));
@@ -313,7 +331,8 @@ export const useStore = create<State>((set, get) => ({
     if (!quiz || quiz.feedback) return;
     const q = quiz.questions[quiz.index];
     const correct = !timedOut && (q.kind === 'name' ? isCorrectName(given, q.answerId) : given === q.answerId);
-    const answer: QuizAnswer = { question: q, given, correct, timedOut };
+    const partial = !correct && !timedOut && q.kind === 'name' && isGroupNameOnly(given, q.answerId);
+    const answer: QuizAnswer = { question: q, given, correct, timedOut, partial };
     set({ quiz: { ...quiz, answers: [...quiz.answers, answer], feedback: answer } });
   },
   nextQuestion: () => {

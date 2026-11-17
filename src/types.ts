@@ -30,6 +30,8 @@ export interface Structure {
   layer: LayerId;
   kind: StructureKind;
   color: string;
+  /** 갈래라면 소속 근육 id (예: 'biceps_brachii') */
+  group?: string;
   /** 땡시 정답으로 인정할 다른 이름 (구용어, 약칭 등) */
   aliases?: string[];
   description?: string;

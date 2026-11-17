@@ -175,7 +175,7 @@ function Question() {
 
       {fb && (
         <div className={`feedback ${fb.correct ? 'good-card' : 'bad-card'}`}>
-          <strong>{fb.correct ? '정답' : fb.timedOut ? '시간 초과' : '오답'}</strong>
+          <strong>{fb.correct ? '정답' : fb.timedOut ? '시간 초과' : fb.partial ? '갈래까지 답하세요' : '오답'}</strong>
           <span>
             {' '}
             · {answer.ko} ({answer.la})

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { LAYERS } from '../data/layers';
-import { STRUCTURE_BY_ID } from '../data/structures';
+import { STRUCTURE_BY_ID, structureName } from '../data/structures';
 import { useStore } from '../store';
 import { isRealMesh } from '../model/anatomyGeometry';
 
@@ -41,6 +41,7 @@ export function InfoCard() {
         {s.la} · {s.en}
       </p>
       <span className="tag">{layer}</span>
+      {s.group && <span className="tag">{structureName(s.group)}의 갈래</span>}
       <p className="muted small model-src">모델: {modelSource(s.id, s.fmaId)}</p>
       <dl>
         {nerve && (
@@ -115,7 +116,7 @@ export function Credits({ onClose }: { onClose: () => void }) {
         </p>
         <p className="small">
           <strong>수정 내역:</strong> 팔꿈치 위~겨드랑이 아래 구간만 잘라냄, 약 10° 기울어진 팔을 세로로 세움(전단 변환),
-          mm→cm 변환, 위팔두갈래근·위팔세갈래근의 갈래를 하나로 합침, glTF로 변환.
+          mm→cm 변환, glTF로 변환. 위팔두갈래근(2갈래)·위팔세갈래근(3갈래)은 원본처럼 갈래별 메시로 둠.
         </p>
         <p className="small">
           <strong>생성한 부분 (원본에 없음):</strong> 피부·피하조직·근막 껍질, 정중신경·자신경·근육피부신경·노신경 경로.

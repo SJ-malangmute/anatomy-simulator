@@ -15,15 +15,11 @@ if (!extracted) throw new Error('extracted 폴더 경로를 넘겨 주세요');
 /** 앱 structure id → BodyParts3D (FMA 개념 ID, OBJ 파일 ID) */
 const SOURCES = {
   humerus: [['FMA23130', 'FJ3368']],
-  biceps_brachii: [
-    ['FMA37684', 'FJ1512'], // short head of right biceps brachii
-    ['FMA37686', 'FJ1478'], // long head of right biceps brachii
-  ],
-  triceps_brachii: [
-    ['FMA37699', 'FJ1479'], // long head
-    ['FMA37697', 'FJ1477'], // lateral head
-    ['FMA37695', 'FJ1480'], // medial head
-  ],
+  biceps_short_head: [['FMA37684', 'FJ1512']], // short head of right biceps brachii
+  biceps_long_head: [['FMA37686', 'FJ1478']], // long head of right biceps brachii
+  triceps_long_head: [['FMA37699', 'FJ1479']],
+  triceps_lateral_head: [['FMA37697', 'FJ1477']],
+  triceps_medial_head: [['FMA37695', 'FJ1480']],
   brachialis: [['FMA37668', 'FJ1486']],
   coracobrachialis: [['FMA37665', 'FJ1488']],
   brachial_artery: [
@@ -39,7 +35,12 @@ const Z_LO = 1030;
 const Z_HI = 1280;
 const Z_MID = (Z_LO + Z_HI) / 2;
 
-const DEEP = ['humerus', 'biceps_brachii', 'triceps_brachii', 'brachialis', 'coracobrachialis', 'brachial_artery'];
+/** 갈래들을 묶은 근육 (라벨·핀·신경 배치에 쓴다) */
+const GROUPS = {
+  biceps_brachii: ['biceps_short_head', 'biceps_long_head'],
+  triceps_brachii: ['triceps_long_head', 'triceps_lateral_head', 'triceps_medial_head'],
+};
+const DEEP = ['humerus', ...GROUPS.biceps_brachii, ...GROUPS.triceps_brachii, 'brachialis', 'coracobrachialis', 'brachial_artery'];
 const VEINS = ['cephalic_vein', 'basilic_vein'];
 
 // ---------- 1. 읽기와 자르기 ----------
@@ -212,8 +213,11 @@ function centerline(id, step = 0.5) {
     .sort((a, b) => b[0] - a[0])
     .map(([, b]) => [round(b[0] / b[3]), round(b[1] / b[3]), round(b[2] / b[3])]);
 }
+/** 구조물 id 또는 갈래 묶음 id의 위치 배열 */
+const positionsOf = (id) => (GROUPS[id] ? GROUPS[id].flatMap((h) => meshes[h].positions) : meshes[id].positions);
+
 function sliceStats(id, y, band = 0.6) {
-  const p = meshes[id].positions;
+  const p = positionsOf(id);
   let sx = 0, sz = 0, n = 0, maxR = 0, minX = Infinity, maxX = -Infinity;
   for (let i = 0; i < p.length; i += 3) {
     if (Math.abs(p[i + 1] - y) > band) continue;
@@ -313,7 +317,7 @@ console.log(`nerve points pulled inside fascia: ${clamped}`);
 
 // ---------- 5. 땡시 핀 위치: 중간 높이에서 축에서 가장 먼 표면 점 ----------
 function surfacePin(id) {
-  const p = meshes[id].positions;
+  const p = positionsOf(id);
   let sy = 0;
   for (let i = 1; i < p.length; i += 3) sy += p[i];
   const yMid = sy / (p.length / 3);
@@ -330,7 +334,7 @@ function surfacePin(id) {
   return best.map(round);
 }
 const pins = {};
-for (const id of Object.keys(SOURCES)) pins[id] = surfacePin(id);
+for (const id of [...Object.keys(SOURCES), ...Object.keys(GROUPS)]) pins[id] = surfacePin(id);
 for (const [k, pts] of Object.entries(nerves)) pins[k] = pts[Math.floor(pts.length * 0.45)];
 
 // ---------- 6. 쓰기 ----------
@@ -359,6 +363,7 @@ const meta = {
   meanSkinRadius: round(meanSkinR),
   envelope: { angles: ANG, rows: ROWS, skin, subcut, fascia },
   fma: Object.fromEntries(Object.entries(SOURCES).map(([id, l]) => [id, l.map(([f]) => f)])),
+  groups: GROUPS,
   veinLines: { cephalic_vein: centerline('cephalic_vein'), basilic_vein: centerline('basilic_vein') },
   nerves,
   pins,

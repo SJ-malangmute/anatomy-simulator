@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { Html, Line, OrbitControls, useGLTF } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
-import { STRUCTURES, STRUCTURE_BY_ID } from '../data/structures';
+import { STRUCTURES, STRUCTURE_BY_ID, structureName } from '../data/structures';
 import type { Structure } from '../types';
 import { SCENARIO, useStore } from '../store';
 import {
@@ -63,7 +63,7 @@ function StructureMesh({ s }: { s: Structure }) {
   const group = useRef<THREE.Group>(null);
 
   useFrame((_, dt) => {
-    if (s.id !== 'biceps_brachii' || !group.current) return;
+    if (s.group !== 'biceps_brachii' || !group.current) return;
     group.current.position.lerp(retracted ? BICEPS_RETRACT_OFFSET : ZERO, 1 - Math.exp(-dt * 5));
   });
   useCursor(isHovered, 'pointer');
@@ -241,10 +241,11 @@ function Labels() {
       {[...ids].map((id) => {
         const p = PIN_POINTS[id];
         if (!p) return null;
-        const pos = id === 'biceps_brachii' && retracted ? p.clone().add(BICEPS_RETRACT_OFFSET) : p;
+        const isBiceps = id === 'biceps_brachii' || STRUCTURE_BY_ID[id]?.group === 'biceps_brachii';
+        const pos = isBiceps && retracted ? p.clone().add(BICEPS_RETRACT_OFFSET) : p;
         return (
           <Html key={id} position={pos} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-            <div className={`label3d ${id === selected ? 'is-selected' : ''}`}>{STRUCTURE_BY_ID[id].ko}</div>
+            <div className={`label3d ${id === selected ? 'is-selected' : ''}`}>{structureName(id)}</div>
           </Html>
         );
       })}
