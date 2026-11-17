@@ -1,5 +1,6 @@
 {
   "id": "anterior-arm",
+  "regionId": "arm",
   "title": "위팔 앞칸 해부",
   "region": "오른쪽 위팔",
   "view": "anterior",

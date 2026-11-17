@@ -1,0 +1,329 @@
+{
+  "id": "anterior-forearm",
+  "regionId": "forearm",
+  "title": "아래팔 앞칸 해부",
+  "region": "오른쪽 아래팔",
+  "view": "anterior",
+  "summary": "얕은 굽힘근, 노동맥·자동맥과 신경, 깊은 굽힘근 위의 정중신경",
+  "source": "일반적인 해부 실습서의 아래팔 앞칸 절차를 단순화한 예시 시나리오 (검수되지 않음)",
+  "steps": [
+    {
+      "id": "skin-incision",
+      "type": "incision",
+      "title": "피부 세로 절개",
+      "instruction": "메스로 아래팔 앞면 정중선을 따라 팔꿈치 쪽에서 손목 쪽까지 피부를 세로로 절개하세요. 가쪽에는 노쪽피부정맥, 안쪽에는 자쪽피부정맥이 지나갑니다.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "show",
+          "superficial": "show",
+          "fascia": "show",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": false,
+        "retracted": {}
+      },
+      "incision": {
+        "phiDeg": 0,
+        "yFrom": 9,
+        "yTo": -9,
+        "tolerance": 0.8,
+        "minCoverage": 0.8
+      },
+      "preserve": [
+        "cephalic_vein",
+        "basilic_vein"
+      ]
+    },
+    {
+      "id": "reflect-skin",
+      "type": "action",
+      "title": "피부판 젖히기",
+      "instruction": "피부를 안쪽과 가쪽으로 젖혀 피하조직을 드러내세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "show",
+          "superficial": "show",
+          "fascia": "show",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": false,
+        "retracted": {}
+      },
+      "actionLabel": "피부판 젖히기",
+      "effect": "openSkin"
+    },
+    {
+      "id": "superficial-veins",
+      "type": "identify",
+      "title": "표재정맥 찾기",
+      "instruction": "피하조직 안에서 아래팔 가쪽과 안쪽을 따라 올라가는 두 정맥을 찾아 클릭하세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "ghost",
+          "superficial": "show",
+          "fascia": "ghost",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": true,
+        "retracted": {}
+      },
+      "targets": [
+        "cephalic_vein",
+        "basilic_vein"
+      ]
+    },
+    {
+      "id": "remove-subcut",
+      "type": "action",
+      "title": "피하조직과 근막 제거",
+      "instruction": "표재정맥은 보존하면서 피하조직을 걷어내고, 아래팔근막을 열어 앞칸 근육을 드러내세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "ghost",
+          "superficial": "show",
+          "fascia": "show",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": true,
+        "retracted": {}
+      },
+      "actionLabel": "피하조직·근막 제거",
+      "effect": "removeSubcutAndFascia"
+    },
+    {
+      "id": "superficial-flexors",
+      "type": "identify",
+      "title": "얕은층 근육 찾기",
+      "instruction": "안쪽위관절융기에서 시작하는 얕은 굽힘근 네 개와, 가쪽 가장자리를 이루는 위팔노근을 찾아 클릭하세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "hide",
+          "superficial": "show",
+          "fascia": "hide",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": true,
+        "retracted": {}
+      },
+      "targets": [
+        "pronator_teres",
+        "flexor_carpi_radialis",
+        "palmaris_longus",
+        "flexor_carpi_ulnaris",
+        "brachioradialis"
+      ]
+    },
+    {
+      "id": "retract-borders",
+      "type": "action",
+      "title": "위팔노근과 자쪽손목굽힘근 젖히기",
+      "instruction": "위팔노근은 가쪽으로, 자쪽손목굽힘근은 안쪽으로 당겨 그 밑의 혈관과 신경을 드러내세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "hide",
+          "superficial": "show",
+          "fascia": "hide",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": true,
+        "retracted": {}
+      },
+      "actionLabel": "양쪽 가장자리 젖히기",
+      "effect": "retract",
+      "retract": [
+        {
+          "target": "brachioradialis",
+          "offset": [
+            -2,
+            0,
+            0.8
+          ]
+        },
+        {
+          "target": "flexor_carpi_ulnaris",
+          "offset": [
+            1.8,
+            0,
+            0.6
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vessels",
+      "type": "identify",
+      "title": "노동맥·자동맥 무리 찾기",
+      "instruction": "위팔노근 밑의 동맥과 감각신경, 자쪽손목굽힘근 밑의 동맥과 신경, 그리고 가운데의 중간층 근육을 찾아 클릭하세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "hide",
+          "superficial": "show",
+          "fascia": "hide",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": true,
+        "retracted": {
+          "brachioradialis": [
+            -2,
+            0,
+            0.8
+          ],
+          "flexor_carpi_ulnaris": [
+            1.8,
+            0,
+            0.6
+          ]
+        }
+      },
+      "targets": [
+        "radial_artery",
+        "superficial_radial_nerve",
+        "ulnar_artery",
+        "ulnar_nerve",
+        "flexor_digitorum_superficialis"
+      ]
+    },
+    {
+      "id": "lift-superficial",
+      "type": "action",
+      "title": "얕은·중간층 근육 들어올리기",
+      "instruction": "얕은손가락굽힘근과 그 위의 얕은 굽힘근들을 앞쪽으로 들어 올려, 깊은층과 그 위를 지나는 신경을 드러내세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "hide",
+          "superficial": "show",
+          "fascia": "hide",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": true,
+        "retracted": {
+          "brachioradialis": [
+            -2,
+            0,
+            0.8
+          ],
+          "flexor_carpi_ulnaris": [
+            1.8,
+            0,
+            0.6
+          ]
+        }
+      },
+      "actionLabel": "근육 들어올리기",
+      "effect": "retract",
+      "retract": [
+        {
+          "target": "flexor_digitorum_superficialis",
+          "offset": [
+            1,
+            0,
+            2.4
+          ]
+        },
+        {
+          "target": "palmaris_longus",
+          "offset": [
+            0.6,
+            0,
+            2.4
+          ]
+        },
+        {
+          "target": "flexor_carpi_radialis",
+          "offset": [
+            -0.4,
+            0,
+            2.4
+          ]
+        },
+        {
+          "target": "pronator_teres",
+          "offset": [
+            -0.6,
+            0,
+            2.2
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deep-layer",
+      "type": "identify",
+      "title": "깊은층 찾기",
+      "instruction": "얕은손가락굽힘근의 깊은 면을 따라 내려가던 신경과, 그 밑 깊은층의 근육 두 개를 찾아 클릭하세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "hide",
+          "superficial": "show",
+          "fascia": "hide",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": true,
+        "retracted": {
+          "brachioradialis": [
+            -2,
+            0,
+            0.8
+          ],
+          "flexor_carpi_ulnaris": [
+            1.8,
+            0,
+            0.6
+          ],
+          "flexor_digitorum_superficialis": [
+            1,
+            0,
+            2.4
+          ],
+          "palmaris_longus": [
+            0.6,
+            0,
+            2.4
+          ],
+          "flexor_carpi_radialis": [
+            -0.4,
+            0,
+            2.4
+          ],
+          "pronator_teres": [
+            -0.6,
+            0,
+            2.2
+          ]
+        }
+      },
+      "targets": [
+        "median_nerve",
+        "flexor_digitorum_profundus",
+        "flexor_pollicis_longus"
+      ]
+    }
+  ]
+}

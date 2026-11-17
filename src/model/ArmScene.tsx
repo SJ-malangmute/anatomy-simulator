@@ -3,19 +3,11 @@ import * as THREE from 'three';
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { Html, Line, OrbitControls, useGLTF } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
-import { STRUCTURES, STRUCTURE_BY_ID, structureName } from '../data/structures';
-import type { Structure } from '../types';
+import { STRUCTURE_BY_ID, structureName, structuresIn } from '../data/structures';
+import { REGIONS } from '../data/regions';
+import type { Structure, Vec3 } from '../types';
 import { hasPin, incisionPhi, useScenario, useStore } from '../store';
-import type { Vec3 } from '../types';
-import {
-  MODEL_URL,
-  NERVE_CURVES,
-  PIN_POINTS,
-  isRealMesh,
-  nerveGeometry,
-  onShell,
-  shellGeometry,
-} from './anatomyGeometry';
+import { regionGeometry, type RegionGeometry } from './anatomyGeometry';
 
 const noRaycast = () => {};
 const ZERO = new THREE.Vector3();
@@ -25,24 +17,27 @@ function retractOffset(retracted: Record<string, Vec3>, id: string): Vec3 | null
   return retracted[id] ?? (STRUCTURE_BY_ID[id]?.group ? retracted[STRUCTURE_BY_ID[id].group!] : undefined) ?? null;
 }
 
-useGLTF.preload(MODEL_URL);
+REGIONS.forEach((r) => useGLTF.preload(regionGeometry(r.id).modelUrl));
+
+/** 지금 부위의 형상 */
+const useGeo = () => regionGeometry(useStore((s) => s.region));
 
 /** 실제 메시는 glb에서, 껍질과 신경은 메타데이터에서 만든다 */
-function useStructureGeometry(id: string) {
-  const gltf = useGLTF(MODEL_URL);
+function useStructureGeometry(s: Structure, geo: RegionGeometry) {
+  const gltf = useGLTF(geo.modelUrl);
   return useMemo(() => {
-    if (isRealMesh(id)) {
-      const node = gltf.nodes[id] as THREE.Mesh | undefined;
-      if (!node) throw new Error(`arm.glb에 ${id} 메시가 없습니다`);
+    if (geo.isRealMesh(s.id)) {
+      const node = gltf.nodes[s.id] as THREE.Mesh | undefined;
+      if (!node) throw new Error(`${geo.regionId}.glb에 ${s.id} 메시가 없습니다`);
       const g = node.geometry.clone();
       g.computeVertexNormals();
       return g;
     }
-    if (NERVE_CURVES[id]) return nerveGeometry(id);
-    if (id === 'subcutaneous') return shellGeometry('subcut');
-    if (id === 'brachial_fascia') return shellGeometry('fascia');
-    throw new Error(`geometry not defined for ${id}`);
-  }, [gltf, id]);
+    if (geo.nerveCurves[s.id]) return geo.nerveGeometry(s.id);
+    if (s.kind === 'tissue') return geo.shellGeometry('subcut');
+    if (s.kind === 'fascia') return geo.shellGeometry('fascia');
+    throw new Error(`geometry not defined for ${s.id} in ${geo.regionId}`);
+  }, [gltf, geo, s]);
 }
 
 function useCursor(active: boolean, kind: string) {
@@ -55,8 +50,8 @@ function useCursor(active: boolean, kind: string) {
   }, [active, kind]);
 }
 
-function StructureMesh({ s }: { s: Structure }) {
-  const geometry = useStructureGeometry(s.id);
+function StructureMesh({ s, geo }: { s: Structure; geo: RegionGeometry }) {
+  const geometry = useStructureGeometry(s, geo);
   const vis = useStore((st) => st.layerVis[s.layer]);
   const isSelected = useStore((st) => st.selected === s.id);
   const isHovered = useStore((st) => st.hovered === s.id);
@@ -82,6 +77,7 @@ function StructureMesh({ s }: { s: Structure }) {
   return (
     <group ref={group}>
       <mesh
+        name={s.id}
         geometry={geometry}
         raycast={clickable ? THREE.Mesh.prototype.raycast : noRaycast}
         onClick={(e: ThreeEvent<MouseEvent>) => {
@@ -110,17 +106,17 @@ function StructureMesh({ s }: { s: Structure }) {
 }
 
 /** 피부는 절개선에서 두 장으로 갈라지고, 반대편 정중선을 경첩 삼아 젖혀진다 */
-function SkinFlaps() {
+function SkinFlaps({ geo }: { geo: RegionGeometry }) {
   const skin = STRUCTURE_BY_ID.skin;
   const scenario = useScenario();
   const cut = incisionPhi(scenario);
   const { geomA, geomB, hinge } = useMemo(
     () => ({
-      geomA: shellGeometry('skin', cut, cut + 180),
-      geomB: shellGeometry('skin', cut + 180, cut + 360),
-      hinge: onShell('skin', cut + 180, 0),
+      geomA: geo.shellGeometry('skin', cut, cut + 180),
+      geomB: geo.shellGeometry('skin', cut + 180, cut + 360),
+      hinge: geo.onShell('skin', cut + 180, 0),
     }),
-    [cut],
+    [cut, geo],
   );
   const vis = useStore((st) => st.layerVis.skin);
   const open = useStore((st) => st.skinOpen);
@@ -183,12 +179,12 @@ function SkinFlaps() {
     <>
       {/* A판(절개선→+180°)은 +각도, B판은 -각도로 경첩을 중심으로 돈다 */}
       <group ref={medial} position={[hinge.x, 0, hinge.z]}>
-        <mesh geometry={geomA} position={[-hinge.x, 0, -hinge.z]} {...handlers}>
+        <mesh name="skin" geometry={geomA} position={[-hinge.x, 0, -hinge.z]} {...handlers}>
           {material}
         </mesh>
       </group>
       <group ref={lateral} position={[hinge.x, 0, hinge.z]}>
-        <mesh geometry={geomB} position={[-hinge.x, 0, -hinge.z]} {...handlers}>
+        <mesh name="skin" geometry={geomB} position={[-hinge.x, 0, -hinge.z]} {...handlers}>
           {material}
         </mesh>
       </group>
@@ -204,6 +200,7 @@ function IncisionOverlay() {
   const stepIndex = useStore((st) => st.stepIndex);
   const step = useScenario().steps[stepIndex];
   const endStroke = useStore((st) => st.endStroke);
+  const geo = useGeo();
 
   useEffect(() => {
     window.addEventListener('pointerup', endStroke);
@@ -214,8 +211,8 @@ function IncisionOverlay() {
     if (step?.type !== 'incision') return [];
     const { phiDeg, yFrom, yTo } = step.incision;
     const n = Math.ceil(Math.abs(yFrom - yTo) / 0.4);
-    return Array.from({ length: n + 1 }, (_, i) => onShell('skin', phiDeg, yFrom + ((yTo - yFrom) * i) / n, 0.06));
-  }, [step]);
+    return Array.from({ length: n + 1 }, (_, i) => geo.onShell('skin', phiDeg, yFrom + ((yTo - yFrom) * i) / n, 0.06));
+  }, [step, geo]);
 
   if (mode !== 'dissect' || open) return null;
   const lift = (p: THREE.Vector3) => new THREE.Vector3(p.x * 1.012, p.y, p.z * 1.012);
@@ -248,13 +245,14 @@ function Labels() {
   const selected = useStore((st) => st.selected);
   const found = useStore((st) => st.found);
   const retracted = useStore((st) => st.retracted);
+  const geo = useGeo();
   const ids = new Set<string>();
   if (mode !== 'quiz' && selected) ids.add(selected);
   if (mode === 'dissect') found.forEach((f) => ids.add(f));
   return (
     <>
       {[...ids].map((id) => {
-        const p = PIN_POINTS[id];
+        const p = geo.pins[id];
         if (!p) return null;
         const off = retractOffset(retracted, id);
         const pos = off ? p.clone().add(new THREE.Vector3(...off)) : p;
@@ -274,10 +272,11 @@ function QuizPin() {
   const controls = useThree((s) => s.controls) as unknown as OrbitControlsImpl | null;
   const current = quiz && !quiz.finished ? quiz.questions[quiz.index] : null;
   const q = current && hasPin(current) ? current : null;
+  const geo = useGeo();
 
   useEffect(() => {
     if (!q) return;
-    const pin = PIN_POINTS[q.targetId];
+    const pin = geo.pins[q.targetId];
     const dir = new THREE.Vector3(pin.x, 0, pin.z);
     if (dir.length() < 0.5) dir.set(0, 0, 1);
     dir.normalize();
@@ -286,10 +285,10 @@ function QuizPin() {
       controls.target.set(0, pin.y * 0.5, 0);
       controls.update();
     }
-  }, [q, camera, controls]);
+  }, [q, camera, controls, geo]);
 
   if (!q) return null;
-  const pin = PIN_POINTS[q.targetId];
+  const pin = geo.pins[q.targetId];
   return (
     <group position={pin}>
       <mesh>
@@ -301,6 +300,15 @@ function QuizPin() {
       </Html>
     </group>
   );
+}
+
+/** 개발 중 콘솔에서 장면을 검사하기 위한 훅 (배포 빌드에는 포함되지 않음) */
+function DevSceneHook() {
+  const state = useThree();
+  useEffect(() => {
+    if (import.meta.env.DEV) (window as unknown as { __three: typeof state }).__three = state;
+  }, [state]);
+  return null;
 }
 
 /** 시나리오 시작 등에서 요청한 방향(φ)으로 카메라를 옮긴다 */
@@ -322,6 +330,9 @@ function CameraRig() {
 
 export function ArmScene() {
   const tool = useStore((st) => st.tool);
+  const region = useStore((st) => st.region);
+  const geo = regionGeometry(region);
+  const structures = useMemo(() => structuresIn(region).filter((s) => s.id !== 'skin'), [region]);
   return (
     <>
       <color attach="background" args={['#f3f0ea']} />
@@ -330,6 +341,7 @@ export function ArmScene() {
       <directionalLight position={[-10, -4, -10]} intensity={0.45} />
       <OrbitControls makeDefault enabled={tool === 'orbit'} target={[0, 0, 0]} minDistance={10} maxDistance={60} />
       <CameraRig />
+      {import.meta.env.DEV && <DevSceneHook />}
       <Suspense
         fallback={
           <Html center>
@@ -337,9 +349,9 @@ export function ArmScene() {
           </Html>
         }
       >
-        <SkinFlaps />
-        {STRUCTURES.filter((s) => s.id !== 'skin').map((s) => (
-          <StructureMesh key={s.id} s={s} />
+        <SkinFlaps key={`skin-${region}`} geo={geo} />
+        {structures.map((s) => (
+          <StructureMesh key={`${region}-${s.id}`} s={s} geo={geo} />
         ))}
         <IncisionOverlay />
         <Labels />

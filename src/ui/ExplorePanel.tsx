@@ -1,5 +1,5 @@
 import { LAYERS } from '../data/layers';
-import { STRUCTURES } from '../data/structures';
+import { structuresIn } from '../data/structures';
 import { useStore } from '../store';
 import type { Visibility } from '../types';
 
@@ -16,6 +16,7 @@ export function ExplorePanel() {
   const coverAll = useStore((s) => s.coverAll);
   const selected = useStore((s) => s.selected);
   const select = useStore((s) => s.select);
+  const region = useStore((s) => s.region);
 
   return (
     <div className="panel">
@@ -51,7 +52,7 @@ export function ExplorePanel() {
 
       <h3>구조물</h3>
       {LAYERS.map((l) => {
-        const items = STRUCTURES.filter((s) => s.layer === l.id);
+        const items = structuresIn(region).filter((s) => s.layer === l.id);
         if (!items.length) return null;
         return (
           <div key={l.id} className="group">

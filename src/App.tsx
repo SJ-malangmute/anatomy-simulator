@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ArmScene } from './model/ArmScene';
 import { useStore, type Mode } from './store';
+import { REGIONS } from './data/regions';
 import { ExplorePanel } from './ui/ExplorePanel';
 import { DissectPanel } from './ui/DissectPanel';
 import { QuizPanel } from './ui/QuizPanel';
@@ -22,6 +23,8 @@ const HINTS: Record<Mode, string> = {
 export default function App() {
   const mode = useStore((s) => s.mode);
   const setMode = useStore((s) => s.setMode);
+  const region = useStore((s) => s.region);
+  const setRegion = useStore((s) => s.setRegion);
   const [showCredits, setShowCredits] = useState(false);
 
   return (
@@ -30,6 +33,19 @@ export default function App() {
         <header>
           <h1>해부 실습 시뮬레이터</h1>
           <span className="badge">프로토타입 · BodyParts3D 기반</span>
+          <div className="seg wide region-switch" role="radiogroup" aria-label="부위">
+            {REGIONS.map((r) => (
+              <button
+                key={r.id}
+                role="radio"
+                aria-checked={region === r.id}
+                className={region === r.id ? 'on' : ''}
+                onClick={() => setRegion(r.id)}
+              >
+                오른쪽 {r.ko}
+              </button>
+            ))}
+          </div>
         </header>
         <nav className="tabs" role="tablist">
           {MODES.map((m) => (

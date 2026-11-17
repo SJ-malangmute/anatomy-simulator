@@ -1,3 +1,5 @@
+export type RegionId = 'arm' | 'forearm';
+
 export type LayerId =
   | 'skin'
   | 'subcut'
@@ -27,6 +29,8 @@ export interface Structure {
   ko: string;
   en: string;
   la: string;
+  /** 이 구조물이 나오는 부위 (피부·정맥·신경처럼 여러 부위에 걸치면 여럿) */
+  regions: RegionId[];
   layer: LayerId;
   kind: StructureKind;
   color: string;
@@ -38,8 +42,10 @@ export interface Structure {
   origin?: string;
   insertion?: string;
   action?: string;
-  /** 지배신경 structure id */
+  /** 지배신경 structure id (땡시 지배신경 문제에 쓰임) */
   innervation?: string;
+  /** 지배신경을 id 하나로 말하기 어렵거나 가지까지 밝힐 때의 설명 */
+  innervationNote?: string;
   bloodSupply?: string;
   course?: string;
   clinical?: string;
@@ -98,6 +104,7 @@ export type ScenarioStep = IncisionStep | ActionStep | IdentifyStep;
 
 export interface Scenario {
   id: string;
+  regionId: RegionId;
   title: string;
   region: string;
   /** 시나리오를 시작할 때 카메라가 바라볼 면 */

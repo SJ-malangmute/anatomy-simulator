@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SKIN_R, VEIN_LINES } from '../model/anatomyGeometry';
+import type { RegionGeometry } from '../model/anatomyGeometry';
 import { structureName } from '../data/structures';
 import type { IncisionSpec } from '../types';
 
@@ -18,11 +18,11 @@ const phiOf = (p: THREE.Vector3) => toDeg(Math.atan2(p.x, p.z));
 /** 두 각도의 차이를 -180°~180°로 접는다 (뒤 정중선 ±180° 근처에서 필요) */
 const wrap = (d: number) => ((((d + 180) % 360) + 360) % 360) - 180;
 /** 피부 둘레를 따라 잰 거리 (cm) */
-const arc = (dPhiDeg: number) => (Math.abs(wrap(dPhiDeg)) * Math.PI * SKIN_R) / 180;
+const arcAt = (dPhiDeg: number, skinR: number) => (Math.abs(wrap(dPhiDeg)) * Math.PI * skinR) / 180;
 
 /** 정맥 곡선의 y별 둘레 각도. 피부 아래 정맥이 절개선과 얼마나 가까운지 판정한다. */
-function veinPhiAt(id: string, y: number): number | null {
-  const line = VEIN_LINES[id];
+function veinPhiAt(lines: RegionGeometry['veinLines'], id: string, y: number): number | null {
+  const line = lines[id];
   if (!line) return null;
   let best: THREE.Vector3 | null = null;
   let bestDy = Infinity;
@@ -40,11 +40,11 @@ const DAMAGE_DISTANCE = 0.55;
 const SAMPLE_STEP = 0.3;
 
 /** 빠르게 그어 포인터 이벤트가 듬성듬성해도 판정이 흔들리지 않도록, 피부면을 따라 0.3cm 간격으로 채운다 */
-function densify(strokes: THREE.Vector3[][]): THREE.Vector3[] {
+function densify(strokes: THREE.Vector3[][], skinR: number): THREE.Vector3[] {
   const out: THREE.Vector3[] = [];
   const onSkin = (p: THREE.Vector3) => {
     const r = Math.hypot(p.x, p.z) || 1;
-    return new THREE.Vector3((p.x / r) * SKIN_R, p.y, (p.z / r) * SKIN_R);
+    return new THREE.Vector3((p.x / r) * skinR, p.y, (p.z / r) * skinR);
   };
   for (const stroke of strokes) {
     if (stroke.length === 1) out.push(onSkin(stroke[0]));
@@ -62,8 +62,10 @@ export function evaluateIncision(
   strokes: THREE.Vector3[][],
   spec: IncisionSpec,
   preserve: string[],
+  geo: RegionGeometry,
 ): IncisionResult {
-  const points = densify(strokes);
+  const arc = (d: number) => arcAt(d, geo.skinRadius);
+  const points = densify(strokes, geo.skinRadius);
   const feedback: string[] = [];
   if (points.length < 5) {
     return {
@@ -94,7 +96,7 @@ export function evaluateIncision(
 
   const damaged = preserve.filter((id) =>
     points.some((p) => {
-      const vPhi = veinPhiAt(id, p.y);
+      const vPhi = veinPhiAt(geo.veinLines, id, p.y);
       return vPhi !== null && arc(phiOf(p) - vPhi) < DAMAGE_DISTANCE;
     }),
   );

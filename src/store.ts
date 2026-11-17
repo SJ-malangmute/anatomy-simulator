@@ -1,16 +1,20 @@
 import { create } from 'zustand';
 import * as THREE from 'three';
-import type { LayerId, Scenario, SceneState, Vec3, Visibility } from './types';
+import type { LayerId, RegionId, Scenario, SceneState, Structure, Vec3, Visibility } from './types';
 import { ALL_SHOWN, LAYERS, layerIndex } from './data/layers';
-import { GROUPS, STRUCTURES, STRUCTURE_BY_ID, matchesTarget, structureName } from './data/structures';
+import { GROUPS, STRUCTURE_BY_ID, matchesTarget, structureName, structuresIn } from './data/structures';
+import { REGION_BY_ID } from './data/regions';
 import anteriorArm from './data/scenarios/anterior-arm.json';
 import posteriorArm from './data/scenarios/posterior-arm.json';
+import anteriorForearm from './data/scenarios/anterior-forearm.json';
 import { evaluateIncision, type IncisionResult } from './lib/incision';
+import { regionGeometry } from './model/anatomyGeometry';
 
 // ---------- 시나리오 ----------
-export const SCENARIOS = [anteriorArm, posteriorArm] as Scenario[];
+export const SCENARIOS = [anteriorArm, posteriorArm, anteriorForearm] as Scenario[];
 const SCENARIO_BY_ID: Record<string, Scenario> = Object.fromEntries(SCENARIOS.map((s) => [s.id, s]));
 export const scenarioById = (id: string) => SCENARIO_BY_ID[id] ?? SCENARIOS[0];
+export const scenariosIn = (region: RegionId) => SCENARIOS.filter((s) => s.regionId === region);
 export const useScenario = () => useStore((s) => scenarioById(s.scenarioId));
 
 /** 피부를 가르는 둘레 각도. 피부판은 이 선에서 갈라지고 반대편이 경첩이 된다. */
@@ -71,6 +75,7 @@ interface Message {
 }
 
 interface State {
+  region: RegionId;
   mode: Mode;
   layerVis: Record<LayerId, Visibility>;
   skinOpen: boolean;
@@ -100,6 +105,7 @@ interface State {
   // 땡시
   quiz: QuizState | null;
 
+  setRegion: (r: RegionId) => void;
   setMode: (m: Mode) => void;
   setLayer: (id: LayerId, v: Visibility) => void;
   peelOne: () => void;
@@ -142,9 +148,16 @@ const shuffle = <T,>(a: T[]) => {
   return arr;
 };
 
-const NERVES = ['musculocutaneous_nerve', 'radial_nerve', 'median_nerve', 'ulnar_nerve'];
-const NAME_POOL = STRUCTURES.filter((s) => !['skin', 'subcutaneous', 'brachial_fascia'].includes(s.id));
-const MUSCLES = STRUCTURES.filter((s) => s.kind === 'muscle');
+/** 부위별 문제 대상 */
+const poolFor = (region: RegionId) => {
+  const all = structuresIn(region);
+  return {
+    names: all.filter((s) => !['skin', 'tissue', 'fascia'].includes(s.kind)),
+    muscles: all.filter((s) => s.kind === 'muscle'),
+    injuryNerves: all.filter((s) => s.kind === 'nerve' && s.injury).map((s) => s.id),
+    nerveChoices: REGION_BY_ID[region].nerveChoices,
+  };
+};
 
 /** 괄호 설명과 '끝'을 뺀 핵심 문장 */
 const core = (t: string) => t.replace(/\(.*?\)/g, '').replace(/\s*끝\b/g, '').trim();
@@ -158,9 +171,9 @@ function tooSimilar(a: string, b: string) {
   return shared >= 2;
 }
 
-/** 같은 항목(기시·작용)의 다른 근육 문장으로 오답 보기 3개를 만든다. 정답과 겹치는 문장은 뺀다. */
-function textChoices(answer: string, field: 'origin' | 'action') {
-  const others = [...new Set(MUSCLES.map((m) => m[field]).filter((t): t is string => !!t && !tooSimilar(t, answer)))];
+/** 같은 부위·같은 항목(기시·작용)의 다른 근육 문장으로 오답 보기 3개를 만든다. 정답과 겹치는 문장은 뺀다. */
+function textChoices(muscles: Structure[], answer: string, field: 'origin' | 'action') {
+  const others = [...new Set(muscles.map((m) => m[field]).filter((t): t is string => !!t && !tooSimilar(t, answer)))];
   const picked: string[] = [];
   for (const t of shuffle(others)) {
     if (picked.length === 3) break;
@@ -170,41 +183,35 @@ function textChoices(answer: string, field: 'origin' | 'action') {
 }
 
 /** 문제 유형마다 낼 수 있는 대상 */
-const CANDIDATES: Record<QuizKind, () => QuizQuestion[]> = {
-  name: () => NAME_POOL.map((s) => ({ kind: 'name', targetId: s.id, answer: s.id })),
-  relation: () =>
-    MUSCLES.filter((s) => s.innervation).map((s) => ({
-      kind: 'relation',
-      targetId: s.id,
-      answer: s.innervation!,
-      choices: shuffle(NERVES),
-    })),
-  origin: () =>
-    MUSCLES.filter((s) => s.origin).map((s) => ({
-      kind: 'origin',
-      targetId: s.id,
-      answer: s.origin!,
-      choices: textChoices(s.origin!, 'origin'),
-    })),
-  action: () =>
-    MUSCLES.filter((s) => s.action).map((s) => ({
-      kind: 'action',
-      targetId: s.id,
-      answer: s.action!,
-      choices: textChoices(s.action!, 'action'),
-    })),
-  injury: () =>
-    NERVES.filter((id) => STRUCTURE_BY_ID[id].injury).map((id) => ({
-      kind: 'injury',
-      targetId: id,
-      answer: id,
-      choices: shuffle(NERVES),
-    })),
+const CANDIDATES: Record<QuizKind, (region: RegionId) => QuizQuestion[]> = {
+  name: (r) => poolFor(r).names.map((s) => ({ kind: 'name', targetId: s.id, answer: s.id })),
+  relation: (r) => {
+    const { muscles, nerveChoices } = poolFor(r);
+    return muscles
+      .filter((s) => s.innervation && nerveChoices.includes(s.innervation))
+      .map((s) => ({ kind: 'relation', targetId: s.id, answer: s.innervation!, choices: shuffle(nerveChoices) }));
+  },
+  origin: (r) => {
+    const { muscles } = poolFor(r);
+    return muscles
+      .filter((s) => s.origin)
+      .map((s) => ({ kind: 'origin', targetId: s.id, answer: s.origin!, choices: textChoices(muscles, s.origin!, 'origin') }));
+  },
+  action: (r) => {
+    const { muscles } = poolFor(r);
+    return muscles
+      .filter((s) => s.action)
+      .map((s) => ({ kind: 'action', targetId: s.id, answer: s.action!, choices: textChoices(muscles, s.action!, 'action') }));
+  },
+  injury: (r) => {
+    const { injuryNerves } = poolFor(r);
+    return injuryNerves.map((id) => ({ kind: 'injury', targetId: id, answer: id, choices: shuffle(injuryNerves) }));
+  },
 };
 
-function makeQuestions(count: number, kinds: QuizKind[]): QuizQuestion[] {
+function makeQuestions(region: RegionId, count: number, kinds: QuizKind[]): QuizQuestion[] {
   // 고른 유형의 모든 문제를 한 더미로 섞어 앞에서부터 낸다. 더미를 다 쓰기 전에는 같은 문제가 반복되지 않는다.
-  const pool = () => shuffle(kinds.flatMap((k) => CANDIDATES[k]()));
+  const pool = () => shuffle(kinds.flatMap((k) => CANDIDATES[k](region)));
   const out: QuizQuestion[] = [];
   let deck = pool();
   if (!deck.length) return [];
@@ -252,6 +259,7 @@ export function isGroupNameOnly(given: string, id: string) {
 let cameraNonce = 0;
 
 export const useStore = create<State>((set, get) => ({
+  region: 'arm',
   mode: 'explore',
   layerVis: { ...ALL_SHOWN },
   skinOpen: false,
@@ -278,6 +286,13 @@ export const useStore = create<State>((set, get) => ({
 
   quiz: null,
 
+  setRegion: (r) => {
+    if (r === get().region) return;
+    set({ region: r, scenarioId: scenariosIn(r)[0]?.id ?? SCENARIOS[0].id, hovered: null });
+    // 같은 모드를 새 부위로 다시 시작하고, 카메라를 정면으로 돌린다
+    get().setMode(get().mode);
+    get().lookFrom(0);
+  },
   setMode: (m) => {
     set({
       mode: m,
@@ -306,8 +321,9 @@ export const useStore = create<State>((set, get) => ({
   lookFrom: (phi) => set({ cameraRequest: { phi, nonce: ++cameraNonce } }),
 
   startDissection: (scenarioId) => {
-    const id = scenarioId ?? get().scenarioId;
-    const scenario = scenarioById(id);
+    const region = get().region;
+    const requested = scenarioById(scenarioId ?? get().scenarioId);
+    const scenario = requested.regionId === region ? requested : scenariosIn(region)[0] ?? requested;
     set({
       ...sceneToState(scenario.steps[0].scene),
       scenarioId: scenario.id,
@@ -356,7 +372,7 @@ export const useStore = create<State>((set, get) => ({
   submitIncision: () => {
     const step = scenarioById(get().scenarioId).steps[get().stepIndex];
     if (step.type !== 'incision') return;
-    const result = evaluateIncision(get().strokes, step.incision, step.preserve);
+    const result = evaluateIncision(get().strokes, step.incision, step.preserve, regionGeometry(get().region));
     const damages = Array.from(new Set([...get().damages, ...result.damaged]));
     set({ incision: result, damages, incisionScore: result.pass ? result.score : get().incisionScore });
     if (result.damaged.length) get().say(`손상: ${result.damaged.map(structureName).join(', ')}`, 'bad');
@@ -410,7 +426,7 @@ export const useStore = create<State>((set, get) => ({
   },
 
   startQuiz: (count, perQuestionSec, kinds) => {
-    const questions = makeQuestions(count, kinds);
+    const questions = makeQuestions(get().region, count, kinds);
     if (!questions.length) return;
     set({
       quiz: {

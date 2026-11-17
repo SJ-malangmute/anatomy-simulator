@@ -1,13 +1,13 @@
 Third-party data
 
-The 3D model files derived from BodyParts3D (public/models/arm.glb and
-src/data/generated/arm-meta.json) are NOT covered by the MIT License in LICENSE.
+The 3D model files derived from BodyParts3D (public/models/*.glb and
+src/data/generated/*-meta.json) are NOT covered by the MIT License in LICENSE.
 They are adapted from:
 
   BodyParts3D, (c) The Database Center for Life Science
   licensed under CC Attribution 4.0 International
   https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html
 
-Changes: cropped to the right upper arm, straightened along the humerus axis,
+Changes: cropped to the right upper arm and forearm, straightened along the bone axis,
 converted from mm to cm and from OBJ to glTF; skin/fascia shells and nerve
 paths were generated and are approximations.

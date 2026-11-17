@@ -1,12 +1,15 @@
 import { structureName } from '../data/structures';
-import { SCENARIOS, useScenario, useStore } from '../store';
+import { scenariosIn, useScenario, useStore } from '../store';
 
 function ScenarioPicker() {
   const scenarioId = useStore((s) => s.scenarioId);
+  const region = useStore((s) => s.region);
   const startDissection = useStore((s) => s.startDissection);
+  const list = scenariosIn(region);
+  if (list.length < 2) return null;
   return (
     <div className="scenario-picker" role="radiogroup" aria-label="해부 시나리오">
-      {SCENARIOS.map((sc) => (
+      {list.map((sc) => (
         <button
           key={sc.id}
           role="radio"

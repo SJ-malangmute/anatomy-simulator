@@ -1,4 +1,5 @@
-import type { Structure } from '../types';
+import type { RegionId, Structure } from '../types';
+import { FOREARM } from './structures-forearm';
 
 /**
  * 위팔(오른팔) 앞칸 해부 구조물.
@@ -12,6 +13,7 @@ export const STRUCTURES: Structure[] = [
     ko: '피부',
     en: 'Skin',
     la: 'Cutis',
+    regions: ['arm', 'forearm'],
     layer: 'skin',
     kind: 'skin',
     color: '#e2b39b',
@@ -24,6 +26,7 @@ export const STRUCTURES: Structure[] = [
     ko: '피하조직',
     en: 'Subcutaneous tissue',
     la: 'Tela subcutanea',
+    regions: ['arm', 'forearm'],
     layer: 'subcut',
     kind: 'tissue',
     color: '#efd27e',
@@ -36,6 +39,7 @@ export const STRUCTURES: Structure[] = [
     ko: '노쪽피부정맥',
     en: 'Cephalic vein',
     la: 'Vena cephalica',
+    regions: ['arm', 'forearm'],
     layer: 'superficial',
     kind: 'vein',
     color: '#3f5fd6',
@@ -50,6 +54,7 @@ export const STRUCTURES: Structure[] = [
     ko: '자쪽피부정맥',
     en: 'Basilic vein',
     la: 'Vena basilica',
+    regions: ['arm', 'forearm'],
     layer: 'superficial',
     kind: 'vein',
     color: '#3f5fd6',
@@ -63,6 +68,7 @@ export const STRUCTURES: Structure[] = [
     ko: '위팔근막',
     en: 'Brachial fascia',
     la: 'Fascia brachii',
+    regions: ['arm'],
     layer: 'fascia',
     kind: 'fascia',
     color: '#d8d2c4',
@@ -76,6 +82,7 @@ export const STRUCTURES: Structure[] = [
     ko: '위팔두갈래근 짧은갈래',
     en: 'Short head of biceps brachii',
     la: 'Caput breve musculi bicipitis brachii',
+    regions: ['arm'],
     layer: 'muscle',
     kind: 'muscle',
     color: '#c9564f',
@@ -94,6 +101,7 @@ export const STRUCTURES: Structure[] = [
     ko: '위팔두갈래근 긴갈래',
     en: 'Long head of biceps brachii',
     la: 'Caput longum musculi bicipitis brachii',
+    regions: ['arm'],
     layer: 'muscle',
     kind: 'muscle',
     color: '#b3443e',
@@ -111,6 +119,7 @@ export const STRUCTURES: Structure[] = [
     ko: '위팔근',
     en: 'Brachialis',
     la: 'Musculus brachialis',
+    regions: ['arm'],
     layer: 'muscle',
     kind: 'muscle',
     color: '#a8433f',
@@ -127,6 +136,7 @@ export const STRUCTURES: Structure[] = [
     ko: '부리위팔근',
     en: 'Coracobrachialis',
     la: 'Musculus coracobrachialis',
+    regions: ['arm'],
     layer: 'muscle',
     kind: 'muscle',
     color: '#b5574f',
@@ -144,6 +154,7 @@ export const STRUCTURES: Structure[] = [
     ko: '위팔세갈래근 긴갈래',
     en: 'Long head of triceps brachii',
     la: 'Caput longum musculi tricipitis brachii',
+    regions: ['arm'],
     layer: 'muscle',
     kind: 'muscle',
     color: '#9c3d3a',
@@ -162,6 +173,7 @@ export const STRUCTURES: Structure[] = [
     ko: '위팔세갈래근 가쪽갈래',
     en: 'Lateral head of triceps brachii',
     la: 'Caput laterale musculi tricipitis brachii',
+    regions: ['arm'],
     layer: 'muscle',
     kind: 'muscle',
     color: '#ab4541',
@@ -180,6 +192,7 @@ export const STRUCTURES: Structure[] = [
     ko: '위팔세갈래근 안쪽갈래',
     en: 'Medial head of triceps brachii',
     la: 'Caput mediale musculi tricipitis brachii',
+    regions: ['arm'],
     layer: 'muscle',
     kind: 'muscle',
     color: '#8a3532',
@@ -196,6 +209,7 @@ export const STRUCTURES: Structure[] = [
     ko: '위팔동맥',
     en: 'Brachial artery',
     la: 'Arteria brachialis',
+    regions: ['arm'],
     layer: 'neurovascular',
     kind: 'artery',
     color: '#d7263d',
@@ -210,6 +224,7 @@ export const STRUCTURES: Structure[] = [
     ko: '깊은위팔동맥',
     en: 'Deep brachial artery',
     la: 'Arteria profunda brachii',
+    regions: ['arm'],
     layer: 'neurovascular',
     kind: 'artery',
     color: '#c81d35',
@@ -224,11 +239,12 @@ export const STRUCTURES: Structure[] = [
     ko: '정중신경',
     en: 'Median nerve',
     la: 'Nervus medianus',
+    regions: ['arm', 'forearm'],
     layer: 'neurovascular',
     kind: 'nerve',
     color: '#f2c94c',
     course:
-      '팔신경얼기의 가쪽·안쪽다발에서 시작한다. 위팔에서는 가지를 내지 않고, 위팔동맥 앞을 지나 가쪽에서 안쪽으로 교차한다.',
+      '팔신경얼기의 가쪽·안쪽다발에서 시작한다. 위팔에서는 가지를 내지 않고, 위팔동맥 앞을 지나 가쪽에서 안쪽으로 교차한다. 아래팔에서는 원엎침근 두 갈래 사이를 지나 얕은손가락굽힘근과 깊은손가락굽힘근 사이를 내려가며, 앞뼈사이신경을 낸다.',
     clinical: '손목굴증후군의 원인 신경. 위팔뼈 관절위 골절 때 손상될 수 있다.',
     injury: '팔꿈치보다 위에서 손상되면 주먹을 쥘 때 엄지·검지가 펴진 채 남고(축복손 모양), 엄지 맞섬이 약해지며, 손바닥 가쪽 세 손가락 반의 감각이 떨어진다.',
   },
@@ -238,12 +254,13 @@ export const STRUCTURES: Structure[] = [
     ko: '자신경',
     en: 'Ulnar nerve',
     la: 'Nervus ulnaris',
+    regions: ['arm', 'forearm'],
     layer: 'neurovascular',
     kind: 'nerve',
     color: '#f2c94c',
     aliases: ['척골신경'],
     course:
-      '안쪽다발에서 시작한다. 위팔 안쪽을 내려가 안쪽 근육사이막을 뚫고 뒤칸으로 가서 안쪽위관절융기 뒤를 지난다. 위팔에서는 가지가 없다.',
+      '안쪽다발에서 시작한다. 위팔 안쪽을 내려가 안쪽 근육사이막을 뚫고 뒤칸으로 가서 안쪽위관절융기 뒤를 지난다. 위팔에서는 가지가 없다. 아래팔에서는 자쪽손목굽힘근 두 갈래 사이로 들어가 그 밑을 자동맥 안쪽에서 내려간다.',
     clinical: '팔꿈치 안쪽을 부딪히면 찌릿한 곳(funny bone). 손상되면 갈퀴손이 생긴다.',
     injury: '넷째·다섯째 손가락이 갈퀴처럼 굽고(갈퀴손), 손가락 벌림·모음이 약해지며, 새끼손가락 쪽 한 손가락 반의 감각이 떨어진다.',
   },
@@ -253,6 +270,7 @@ export const STRUCTURES: Structure[] = [
     ko: '근육피부신경',
     en: 'Musculocutaneous nerve',
     la: 'Nervus musculocutaneus',
+    regions: ['arm'],
     layer: 'neurovascular',
     kind: 'nerve',
     color: '#f2c94c',
@@ -268,6 +286,7 @@ export const STRUCTURES: Structure[] = [
     ko: '노신경',
     en: 'Radial nerve',
     la: 'Nervus radialis',
+    regions: ['arm'],
     layer: 'neurovascular',
     kind: 'nerve',
     color: '#f2c94c',
@@ -282,6 +301,7 @@ export const STRUCTURES: Structure[] = [
     ko: '위팔뼈',
     en: 'Humerus',
     la: 'Humerus',
+    regions: ['arm'],
     layer: 'bone',
     kind: 'bone',
     color: '#ece6d6',
@@ -289,6 +309,7 @@ export const STRUCTURES: Structure[] = [
     description: '위팔의 유일한 뼈. 위끝(머리), 몸통, 아래끝(위관절융기)으로 나뉜다.',
     clinical: '몸통 골절 때는 노신경, 관절위 골절 때는 위팔동맥·정중신경 손상에 주의한다.',
   },
+  ...FOREARM,
 ];
 
 export const STRUCTURE_BY_ID: Record<string, Structure> = Object.fromEntries(
@@ -312,6 +333,9 @@ export const GROUPS: Record<string, { ko: string; en: string; la: string; aliase
 };
 
 export const structureName = (id: string) => STRUCTURE_BY_ID[id]?.ko ?? GROUPS[id]?.ko ?? id;
+
+/** 이 부위에 나오는 구조물 */
+export const structuresIn = (region: RegionId) => STRUCTURES.filter((s) => s.regions.includes(region));
 
 /** 구조물 자신이거나, 그 구조물이 속한 근육이면 true */
 export const matchesTarget = (id: string, target: string) => id === target || STRUCTURE_BY_ID[id]?.group === target;
