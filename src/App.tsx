@@ -20,6 +20,27 @@ const HINTS: Record<Mode, string> = {
   quiz: '드래그로 돌려 보며 핀이 가리키는 구조물을 확인하세요',
 };
 
+/** 오른팔 기준 시점: 앞(0°), 안쪽(+90°, 몸통 쪽), 뒤(180°), 가쪽(-90°, 바깥쪽) */
+const VIEWS: { label: string; phi: number }[] = [
+  { label: '앞', phi: 0 },
+  { label: '안쪽', phi: 90 },
+  { label: '뒤', phi: 180 },
+  { label: '가쪽', phi: -90 },
+];
+
+function ViewButtons() {
+  const lookFrom = useStore((s) => s.lookFrom);
+  return (
+    <div className="view-buttons" role="group" aria-label="시점">
+      {VIEWS.map((v) => (
+        <button key={v.label} onClick={() => lookFrom(v.phi)} title={`${v.label}에서 보기`}>
+          {v.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   const mode = useStore((s) => s.mode);
   const setMode = useStore((s) => s.setMode);
@@ -72,9 +93,17 @@ export default function App() {
         </footer>
       </aside>
       <main className="stage">
-        <Canvas camera={{ position: [0, 2, 44], fov: 40 }} dpr={[1, 2]}>
+        <Canvas
+          camera={{ position: [0, 2, 44], fov: 40 }}
+          dpr={[1, 2]}
+          onPointerMissed={() => {
+            // 탐색에서 빈 곳을 누르면 선택을 푼다 (흐리게·격리도 함께 풀린다)
+            if (useStore.getState().mode === 'explore') useStore.getState().select(null);
+          }}
+        >
           <ArmScene />
         </Canvas>
+        <ViewButtons />
         <InfoCard />
         <Toast />
         <div className="hint">{HINTS[mode]}</div>

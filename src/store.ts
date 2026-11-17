@@ -85,8 +85,15 @@ interface State {
   tool: Tool;
   showGuide: boolean;
   message: Message | null;
-  /** 카메라를 이 각도(0 = 앞, 180 = 뒤)로 돌려 달라는 요청. nonce가 바뀔 때마다 적용된다. */
-  cameraRequest: { phi: number; nonce: number } | null;
+  /**
+   * 카메라를 이 각도(0 = 앞, 180 = 뒤)로 돌려 달라는 요청. nonce가 바뀔 때마다 적용된다.
+   * targetY·distance가 있으면 그 높이를 바라보며 그 거리까지 다가간다 (구조물에 초점 맞추기).
+   */
+  cameraRequest: { phi: number; nonce: number; targetY?: number; distance?: number } | null;
+  /** 구조물별 불투명도 (0 = 숨김, 1 = 기본). 땡시에서는 쓰지 않는다. */
+  opacity: Record<string, number>;
+  /** 선택한 구조물만 보기 */
+  isolated: boolean;
 
   // 해부 실습
   scenarioId: string;
@@ -116,6 +123,11 @@ interface State {
   toggleGuide: () => void;
   say: (text: string, tone?: Message['tone']) => void;
   lookFrom: (phi: number) => void;
+  /** 구조물을 선택하고 카메라를 그 구조물로 돌린다 (숨겨진 층이면 다시 보이게 한다) */
+  focusOn: (id: string) => void;
+  setOpacity: (id: string, value: number) => void;
+  resetOpacity: () => void;
+  setIsolated: (on: boolean) => void;
 
   startDissection: (scenarioId?: string) => void;
   nextStep: () => void;
@@ -247,6 +259,22 @@ export function isCorrectName(given: string, id: string) {
   return [s.ko, s.en, s.la, ...(s.aliases ?? [])].some((n) => normalize(n) === g);
 }
 
+/**
+ * 구조물 검색: 한글·구용어·영어·라틴어 이름에서 찾는다 (띄어쓰기·m./n. 접두어 무시).
+ * 이름이 검색어와 같으면 먼저, 검색어로 시작하면 그다음, 포함하면 마지막.
+ */
+export function searchStructures(region: RegionId, query: string, limit = 8) {
+  const q = normalize(query);
+  if (!q) return [];
+  const scored: { s: Structure; score: number }[] = [];
+  for (const s of structuresIn(region)) {
+    const names = [s.ko, s.en, s.la, ...(s.aliases ?? [])].map(normalize);
+    const score = names.some((n) => n === q) ? 0 : names.some((n) => n.startsWith(q)) ? 1 : names.some((n) => n.includes(q)) ? 2 : -1;
+    if (score >= 0) scored.push({ s, score });
+  }
+  return scored.sort((a, b) => a.score - b.score || a.s.ko.length - b.s.ko.length).slice(0, limit).map((x) => x.s);
+}
+
 /** 갈래 문제에 근육 이름만 답했는지 */
 export function isGroupNameOnly(given: string, id: string) {
   const group = STRUCTURE_BY_ID[id]?.group;
@@ -270,6 +298,8 @@ export const useStore = create<State>((set, get) => ({
   showGuide: true,
   message: null,
   cameraRequest: null,
+  opacity: {},
+  isolated: false,
 
   scenarioId: SCENARIOS[0].id,
   stepIndex: 0,
@@ -288,7 +318,7 @@ export const useStore = create<State>((set, get) => ({
 
   setRegion: (r) => {
     if (r === get().region) return;
-    set({ region: r, scenarioId: scenariosIn(r)[0]?.id ?? SCENARIOS[0].id, hovered: null });
+    set({ region: r, scenarioId: scenariosIn(r)[0]?.id ?? SCENARIOS[0].id, hovered: null, opacity: {} });
     // 같은 모드를 새 부위로 다시 시작하고, 카메라를 정면으로 돌린다
     get().setMode(get().mode);
     get().lookFrom(0);
@@ -300,6 +330,7 @@ export const useStore = create<State>((set, get) => ({
       skinOpen: false,
       retracted: {},
       selected: null,
+      isolated: false,
       tool: 'orbit',
       quiz: null,
       message: null,
@@ -313,12 +344,34 @@ export const useStore = create<State>((set, get) => ({
     if (outer) set({ layerVis: { ...vis, [outer.id]: 'hide' } });
   },
   coverAll: () => set({ layerVis: { ...ALL_SHOWN } }),
-  select: (id) => set({ selected: id }),
+  // 선택이 바뀌면 "이 구조만 보기"는 풀린다
+  select: (id) => set((s) => ({ selected: id, isolated: id && id === s.selected ? s.isolated : false })),
   hover: (id) => set({ hovered: id }),
   setTool: (t) => set({ tool: t }),
   toggleGuide: () => set((s) => ({ showGuide: !s.showGuide })),
   say: (text, tone = 'info') => set({ message: { text, tone, at: Date.now() } }),
   lookFrom: (phi) => set({ cameraRequest: { phi, nonce: ++cameraNonce } }),
+  focusOn: (id) => {
+    const s = STRUCTURE_BY_ID[id];
+    if (!s) return;
+    const { layerVis, opacity, retracted } = get();
+    const pin = regionGeometry(get().region).pins[id];
+    set({
+      selected: id,
+      isolated: false,
+      layerVis: layerVis[s.layer] === 'hide' ? { ...layerVis, [s.layer]: 'show' } : layerVis,
+      opacity: opacity[id] === 0 ? { ...opacity, [id]: 1 } : opacity,
+    });
+    if (!pin) return;
+    const off = retracted[id] ?? (s.group ? retracted[s.group] : undefined) ?? [0, 0, 0];
+    const x = pin.x + off[0];
+    const z = pin.z + off[2];
+    const phi = Math.hypot(x, z) < 0.5 ? 0 : (Math.atan2(x, z) * 180) / Math.PI;
+    set({ cameraRequest: { phi, nonce: ++cameraNonce, targetY: pin.y + off[1], distance: 30 } });
+  },
+  setOpacity: (id, value) => set((s) => ({ opacity: { ...s.opacity, [id]: Math.max(0, Math.min(1, value)) } })),
+  resetOpacity: () => set({ opacity: {}, isolated: false }),
+  setIsolated: (on) => set({ isolated: on }),
 
   startDissection: (scenarioId) => {
     const region = get().region;

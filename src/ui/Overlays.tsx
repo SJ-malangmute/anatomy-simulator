@@ -18,6 +18,9 @@ export function InfoCard() {
   const selected = useStore((s) => s.selected);
   const select = useStore((s) => s.select);
   const setLayer = useStore((s) => s.setLayer);
+  const opacity = useStore((s) => (s.selected ? s.opacity[s.selected] ?? 1 : 1));
+  const isolated = useStore((s) => s.isolated);
+  const { setOpacity, setIsolated, focusOn } = useStore.getState();
   if (!selected || mode === 'quiz') return null;
   const s = STRUCTURE_BY_ID[selected];
   const layer = LAYERS.find((l) => l.id === s.layer)?.ko;
@@ -47,6 +50,36 @@ export function InfoCard() {
       <span className="tag">{layer}</span>
       {s.group && <span className="tag">{structureName(s.group)}의 갈래</span>}
       <p className="muted small model-src">모델: {modelSource(s, region)}</p>
+      <div className="view-control">
+        <label className="op-label" htmlFor="op-slider">
+          <span>투명도</span>
+          <span className="muted">{opacity === 0 ? '숨김' : `${Math.round(opacity * 100)}%`}</span>
+        </label>
+        <input
+          id="op-slider"
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={Math.round(opacity * 100)}
+          onChange={(e) => setOpacity(s.id, Number(e.target.value) / 100)}
+          aria-label={`${s.ko} 투명도`}
+        />
+        {opacity > 0 && opacity < 0.5 && (
+          <p className="muted small">50% 미만이면 클릭이 뒤의 구조물로 넘어갑니다.</p>
+        )}
+        <div className="row">
+          <button className="btn small-btn" onClick={() => setOpacity(s.id, opacity === 0 ? 1 : 0)}>
+            {opacity === 0 ? '다시 보이기' : '숨기기'}
+          </button>
+          <button className="btn small-btn" onClick={() => setIsolated(!isolated)} aria-pressed={isolated}>
+            {isolated ? '모두 보기' : '이 구조만 보기'}
+          </button>
+          <button className="btn small-btn" onClick={() => focusOn(s.id)}>
+            카메라 맞추기
+          </button>
+        </div>
+      </div>
       <dl>
         {(nerve || s.innervationNote) && (
           <div>

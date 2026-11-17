@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { Html, Line, OrbitControls, useGLTF } from '@react-three/drei';
+import { GizmoHelper, GizmoViewport, Html, Line, OrbitControls, useGLTF } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { STRUCTURE_BY_ID, structureName, structuresIn } from '../data/structures';
 import { REGIONS } from '../data/regions';
@@ -21,6 +21,36 @@ REGIONS.forEach((r) => useGLTF.preload(regionGeometry(r.id).modelUrl));
 
 /** 지금 부위의 형상 */
 const useGeo = () => regionGeometry(useStore((s) => s.region));
+
+/** 초점이 다른 구조물에 있을 때의 불투명도. 반투명 면이 여러 겹 쌓이면 진해지므로 낮게 잡는다. */
+const DIMMED = 0.1;
+/** 피부·피하조직·근막처럼 팔 전체를 감싸는 면은 더 흐리게 */
+const DIMMED_SHEET = 0.04;
+
+/**
+ * 구조물이 어떻게 보일지: 층 표시 상태, 구조물별 불투명도, 선택에 따른 흐리게·격리를 합친다.
+ * - 땡시에서는 구조물별 설정을 무시한다 (문제 풀이가 흐트러지지 않도록).
+ * - 구조물별 불투명도 50% 미만이면 클릭이 뒤로 통과한다 (뒤의 구조물을 보고 고르기 위해 투명하게 한 것이므로).
+ * - 다른 구조물에 초점이 있어 흐려진 것은 클릭할 수 있다 (바로 다른 구조물로 옮겨 가기 위해).
+ */
+function useAppearance(s: Structure, base: number) {
+  const vis = useStore((st) => st.layerVis[s.layer]);
+  const mode = useStore((st) => st.mode);
+  const userOp = useStore((st) => (st.mode === 'quiz' ? 1 : st.opacity[s.id] ?? 1));
+  const dimmed = useStore((st) => st.mode === 'explore' && !!st.selected && st.selected !== s.id);
+  const isolatedOut = useStore((st) => st.mode !== 'quiz' && st.isolated && !!st.selected && st.selected !== s.id);
+  const ghost = vis === 'ghost';
+  const wraps = s.kind === 'skin' || s.kind === 'tissue' || s.kind === 'fascia';
+  const opacity = Math.min(ghost ? 0.14 : base, userOp, dimmed ? (wraps ? DIMMED_SHEET : DIMMED) : 1);
+  return {
+    hidden: vis === 'hide' || userOp === 0 || isolatedOut,
+    ghost,
+    opacity,
+    transparent: opacity < 1,
+    depthWrite: opacity > 0.5,
+    clickable: mode !== 'quiz' && !ghost && userOp >= 0.5,
+  };
+}
 
 /** 실제 메시는 glb에서, 껍질과 신경은 메타데이터에서 만든다 */
 function useStructureGeometry(s: Structure, geo: RegionGeometry) {
@@ -52,10 +82,8 @@ function useCursor(active: boolean, kind: string) {
 
 function StructureMesh({ s, geo }: { s: Structure; geo: RegionGeometry }) {
   const geometry = useStructureGeometry(s, geo);
-  const vis = useStore((st) => st.layerVis[s.layer]);
   const isSelected = useStore((st) => st.selected === s.id);
   const isHovered = useStore((st) => st.hovered === s.id);
-  const mode = useStore((st) => st.mode);
   const offset = useStore((st) => retractOffset(st.retracted, s.id));
   const target = useMemo(() => (offset ? new THREE.Vector3(...offset) : ZERO), [offset]);
   const hover = useStore((st) => st.hover);
@@ -68,11 +96,11 @@ function StructureMesh({ s, geo }: { s: Structure; geo: RegionGeometry }) {
     group.current.position.lerp(target, 1 - Math.exp(-dt * 5));
   });
   useCursor(isHovered, 'pointer');
-
-  if (vis === 'hide') return null;
-  const ghost = vis === 'ghost';
-  const clickable = !ghost && mode !== 'quiz';
   const sheet = s.kind === 'tissue' || s.kind === 'fascia';
+  const look = useAppearance(s, sheet ? 0.93 : 1);
+
+  if (look.hidden) return null;
+  const clickable = look.clickable;
 
   return (
     <group ref={group}>
@@ -91,10 +119,12 @@ function StructureMesh({ s, geo }: { s: Structure; geo: RegionGeometry }) {
         onPointerOut={() => hover(null)}
       >
         <meshStandardMaterial
+          // 투명 여부가 바뀌면 셰이더를 다시 만들어야 해서 재마운트한다 (three.js는 불투명 재질을 OPAQUE로 컴파일)
+          key={look.transparent ? 't' : 'o'}
           color={s.color}
-          transparent={ghost || sheet}
-          opacity={ghost ? 0.14 : sheet ? 0.93 : 1}
-          depthWrite={!ghost}
+          transparent={look.transparent}
+          opacity={look.opacity}
+          depthWrite={look.depthWrite}
           side={sheet ? THREE.DoubleSide : THREE.FrontSide}
           roughness={s.kind === 'bone' ? 0.85 : 0.55}
           emissive={isSelected ? '#ffb000' : isHovered ? '#666666' : '#000000'}
@@ -118,7 +148,7 @@ function SkinFlaps({ geo }: { geo: RegionGeometry }) {
     }),
     [cut, geo],
   );
-  const vis = useStore((st) => st.layerVis.skin);
+  const look = useAppearance(skin, 1);
   const open = useStore((st) => st.skinOpen);
   const mode = useStore((st) => st.mode);
   const tool = useStore((st) => st.tool);
@@ -142,11 +172,10 @@ function SkinFlaps({ geo }: { geo: RegionGeometry }) {
     if (lateral.current) lateral.current.rotation.y += (-angle - lateral.current.rotation.y) * k;
   });
 
-  if (vis === 'hide') return null;
-  const ghost = vis === 'ghost';
+  if (look.hidden) return null;
 
   const handlers = {
-    raycast: ghost || mode === 'quiz' ? noRaycast : THREE.Mesh.prototype.raycast,
+    raycast: look.clickable ? THREE.Mesh.prototype.raycast : noRaycast,
     onPointerDown: (e: ThreeEvent<PointerEvent>) => {
       if (!canCut) return;
       e.stopPropagation();
@@ -164,11 +193,12 @@ function SkinFlaps({ geo }: { geo: RegionGeometry }) {
 
   const material = (
     <meshStandardMaterial
+      key={look.transparent ? 't' : 'o'}
       color={skin.color}
       side={THREE.DoubleSide}
-      transparent={ghost}
-      opacity={ghost ? 0.14 : 1}
-      depthWrite={!ghost}
+      transparent={look.transparent}
+      opacity={look.opacity}
+      depthWrite={look.depthWrite}
       roughness={0.7}
       emissive={isSelected ? '#ffb000' : '#000000'}
       emissiveIntensity={0.3}
@@ -319,9 +349,11 @@ function CameraRig() {
   useEffect(() => {
     if (!request) return;
     const rad = (request.phi * Math.PI) / 180;
-    camera.position.set(44 * Math.sin(rad), 2, 44 * Math.cos(rad));
+    const d = request.distance ?? 44;
+    const y = request.targetY ?? 0;
+    camera.position.set(d * Math.sin(rad), y + 2, d * Math.cos(rad));
     if (controls) {
-      controls.target.set(0, 0, 0);
+      controls.target.set(0, y, 0);
       controls.update();
     }
   }, [request, camera, controls]);
@@ -341,6 +373,15 @@ export function ArmScene() {
       <directionalLight position={[-10, -4, -10]} intensity={0.45} />
       <OrbitControls makeDefault enabled={tool === 'orbit'} target={[0, 0, 0]} minDistance={10} maxDistance={60} />
       <CameraRig />
+      {/* 방향 표시: +x 안쪽, +y 위, +z 앞 (오른팔). 축을 누르면 그쪽에서 보도록 돌아간다. */}
+      <GizmoHelper alignment="bottom-right" margin={[64, 64]}>
+        <GizmoViewport
+          axisColors={['#d97706', '#2563eb', '#16a34a']}
+          labels={['안', '위', '앞']}
+          labelColor="#ffffff"
+          axisHeadScale={0.9}
+        />
+      </GizmoHelper>
       {import.meta.env.DEV && <DevSceneHook />}
       <Suspense
         fallback={
