@@ -111,8 +111,3 @@ export const PIN_POINTS: Record<string, THREE.Vector3> = {
   brachial_fascia: onShell('fascia', 25, 4),
 };
 
-/** 피부판 경첩: 뒤 정중선 */
-export const SKIN_HINGE_Z = -shellRadiusAt('skin', 180, 0);
-
-/** 위팔두갈래근을 갈고리로 젖혔을 때의 이동량 (가쪽·앞쪽) */
-export const BICEPS_RETRACT_OFFSET = new THREE.Vector3(-3.0, 0, 1.8);

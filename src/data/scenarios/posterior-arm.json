@@ -1,0 +1,255 @@
+{
+  "id": "posterior-arm",
+  "title": "위팔 뒤칸 해부",
+  "region": "오른쪽 위팔",
+  "view": "posterior",
+  "summary": "위팔세갈래근의 세 갈래와 노신경고랑의 노신경·깊은위팔동맥",
+  "source": "일반적인 해부 실습서의 위팔 뒤칸 절차를 단순화한 예시 시나리오 (검수되지 않음)",
+  "steps": [
+    {
+      "id": "skin-incision",
+      "type": "incision",
+      "title": "피부 세로 절개",
+      "instruction": "엎드린 자세를 가정합니다. 메스로 위팔 뒷면 정중선을 따라 어깨 쪽에서 팔꿈치 쪽까지 피부를 세로로 절개하세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "show",
+          "superficial": "show",
+          "fascia": "show",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": false,
+        "retracted": {}
+      },
+      "incision": {
+        "phiDeg": 180,
+        "yFrom": 11,
+        "yTo": -11,
+        "tolerance": 0.8,
+        "minCoverage": 0.8
+      },
+      "preserve": []
+    },
+    {
+      "id": "reflect-skin",
+      "type": "action",
+      "title": "피부판 젖히기",
+      "instruction": "절개선 가장자리를 잡고 피부를 안쪽과 가쪽으로 젖혀 피하조직을 드러내세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "show",
+          "superficial": "show",
+          "fascia": "show",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": false,
+        "retracted": {}
+      },
+      "actionLabel": "피부판 젖히기",
+      "effect": "openSkin"
+    },
+    {
+      "id": "remove-subcut",
+      "type": "action",
+      "title": "피하조직과 근막 제거",
+      "instruction": "피하조직을 걷어내고 위팔근막을 세로로 열어 뒤칸 근육을 드러내세요. 뒤칸에는 큰 표재정맥이 지나지 않습니다.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "show",
+          "superficial": "show",
+          "fascia": "show",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": true,
+        "retracted": {}
+      },
+      "actionLabel": "피하조직·근막 제거",
+      "effect": "removeSubcutAndFascia"
+    },
+    {
+      "id": "superficial-heads",
+      "type": "identify",
+      "title": "얕은 두 갈래 찾기",
+      "instruction": "위팔세갈래근의 얕은 두 갈래를 찾아 클릭하세요. 하나는 어깨뼈에서, 하나는 위팔뼈 뒷면 위쪽에서 시작합니다.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "hide",
+          "superficial": "show",
+          "fascia": "hide",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": true,
+        "retracted": {}
+      },
+      "targets": [
+        "triceps_long_head",
+        "triceps_lateral_head"
+      ]
+    },
+    {
+      "id": "retract-lateral-head",
+      "type": "action",
+      "title": "긴갈래와 가쪽갈래 벌리기",
+      "instruction": "갈고리 두 개로 긴갈래는 안쪽으로, 가쪽갈래는 가쪽으로 당겨 두 갈래 사이를 벌리고, 그 아래 노신경고랑을 드러내세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "hide",
+          "superficial": "show",
+          "fascia": "hide",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": true,
+        "retracted": {}
+      },
+      "actionLabel": "두 갈래 벌리기",
+      "effect": "retract",
+      "retract": [
+        {
+          "target": "triceps_lateral_head",
+          "offset": [
+            -2.4,
+            0,
+            -1.6
+          ]
+        },
+        {
+          "target": "triceps_long_head",
+          "offset": [
+            1.8,
+            0,
+            -1.4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "spiral-groove",
+      "type": "identify",
+      "title": "노신경고랑 구조물 찾기",
+      "instruction": "노신경고랑을 따라 위팔뼈 뒤를 감아 내려가는 신경과, 두 갈래 아래에 있는 가장 깊은 갈래를 찾아 클릭하세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "hide",
+          "superficial": "show",
+          "fascia": "hide",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": true,
+        "retracted": {
+          "triceps_lateral_head": [
+            -2.4,
+            0,
+            -1.6
+          ],
+          "triceps_long_head": [
+            1.8,
+            0,
+            -1.4
+          ]
+        }
+      },
+      "targets": [
+        "radial_nerve",
+        "triceps_medial_head"
+      ]
+    },
+    {
+      "id": "retract-medial-head",
+      "type": "action",
+      "title": "안쪽갈래 젖히기",
+      "instruction": "안쪽갈래를 안쪽으로 당겨, 노신경과 함께 노신경고랑을 지나는 동맥을 드러내세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "hide",
+          "superficial": "show",
+          "fascia": "hide",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": true,
+        "retracted": {
+          "triceps_lateral_head": [
+            -2.4,
+            0,
+            -1.6
+          ],
+          "triceps_long_head": [
+            1.8,
+            0,
+            -1.4
+          ]
+        }
+      },
+      "actionLabel": "안쪽갈래 젖히기",
+      "effect": "retract",
+      "retract": [
+        {
+          "target": "triceps_medial_head",
+          "offset": [
+            2.2,
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deep-brachial",
+      "type": "identify",
+      "title": "깊은위팔동맥 찾기",
+      "instruction": "노신경과 나란히 위팔뼈 뒤를 지나는 동맥을 찾아 클릭하세요.",
+      "scene": {
+        "layers": {
+          "skin": "show",
+          "subcut": "hide",
+          "superficial": "show",
+          "fascia": "hide",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
+        "skinOpen": true,
+        "retracted": {
+          "triceps_lateral_head": [
+            -2.4,
+            0,
+            -1.6
+          ],
+          "triceps_long_head": [
+            1.8,
+            0,
+            -1.4
+          ],
+          "triceps_medial_head": [
+            2.2,
+            0,
+            0
+          ]
+        }
+      },
+      "targets": [
+        "deep_brachial_artery"
+      ]
+    }
+  ]
+}

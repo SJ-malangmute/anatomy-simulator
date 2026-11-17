@@ -205,6 +205,20 @@ export const STRUCTURES: Structure[] = [
     clinical: '혈압을 잴 때 청진하는 동맥. 위팔뼈 관절위 골절 때 손상되면 허혈성 구축(Volkmann)이 올 수 있다.',
   },
   {
+    id: 'deep_brachial_artery',
+    fmaId: 'FMA22696',
+    ko: '깊은위팔동맥',
+    en: 'Deep brachial artery',
+    la: 'Arteria profunda brachii',
+    layer: 'neurovascular',
+    kind: 'artery',
+    color: '#c81d35',
+    aliases: ['상완심동맥', '심상완동맥', 'profunda brachii artery', 'profunda brachii'],
+    course:
+      '위팔동맥의 가장 큰 가지. 큰원근 아래에서 갈라져 노신경과 함께 노신경고랑을 따라 위팔뼈 뒤를 돌고, 가운데곁동맥과 노쪽곁동맥으로 끝난다.',
+    clinical: '위팔세갈래근에 혈액을 공급한다. 위팔뼈 몸통 골절 때 노신경과 함께 손상될 수 있다.',
+  },
+  {
     id: 'median_nerve',
     fmaId: null,
     ko: '정중신경',
@@ -216,6 +230,7 @@ export const STRUCTURES: Structure[] = [
     course:
       '팔신경얼기의 가쪽·안쪽다발에서 시작한다. 위팔에서는 가지를 내지 않고, 위팔동맥 앞을 지나 가쪽에서 안쪽으로 교차한다.',
     clinical: '손목굴증후군의 원인 신경. 위팔뼈 관절위 골절 때 손상될 수 있다.',
+    injury: '팔꿈치보다 위에서 손상되면 주먹을 쥘 때 엄지·검지가 펴진 채 남고(축복손 모양), 엄지 맞섬이 약해지며, 손바닥 가쪽 세 손가락 반의 감각이 떨어진다.',
   },
   {
     id: 'ulnar_nerve',
@@ -230,6 +245,7 @@ export const STRUCTURES: Structure[] = [
     course:
       '안쪽다발에서 시작한다. 위팔 안쪽을 내려가 안쪽 근육사이막을 뚫고 뒤칸으로 가서 안쪽위관절융기 뒤를 지난다. 위팔에서는 가지가 없다.',
     clinical: '팔꿈치 안쪽을 부딪히면 찌릿한 곳(funny bone). 손상되면 갈퀴손이 생긴다.',
+    injury: '넷째·다섯째 손가락이 갈퀴처럼 굽고(갈퀴손), 손가락 벌림·모음이 약해지며, 새끼손가락 쪽 한 손가락 반의 감각이 떨어진다.',
   },
   {
     id: 'musculocutaneous_nerve',
@@ -244,6 +260,7 @@ export const STRUCTURES: Structure[] = [
     course:
       '가쪽다발에서 시작한다. 부리위팔근을 뚫고 위팔두갈래근과 위팔근 사이를 내려가며 앞칸 근육에 가지를 주고, 가쪽아래팔피부신경으로 끝난다.',
     clinical: '손상되면 팔꿉 굽힘과 아래팔 뒤침이 약해진다.',
+    injury: '팔꿉 굽힘과 아래팔 뒤침이 약해지고(위팔노근이 일부 대신함), 위팔두갈래근 힘줄반사가 줄며, 아래팔 가쪽 감각이 떨어진다.',
   },
   {
     id: 'radial_nerve',
@@ -257,6 +274,7 @@ export const STRUCTURES: Structure[] = [
     aliases: ['요골신경'],
     course: '뒤다발에서 시작한다. 깊은위팔동맥과 함께 위팔뼈 노신경고랑을 따라 뒤칸을 돌아 가쪽위관절융기 앞으로 나온다.',
     clinical: '위팔뼈 몸통 골절 때 손상되어 손목처짐(wrist drop)이 생긴다.',
+    injury: '손목과 손가락을 펴지 못해 손목이 처지고(손목처짐), 손등 엄지 쪽 감각이 떨어진다. 위팔세갈래근은 대개 보존된다.',
   },
   {
     id: 'humerus',

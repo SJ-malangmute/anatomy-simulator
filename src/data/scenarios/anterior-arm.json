@@ -2,7 +2,9 @@
   "id": "anterior-arm",
   "title": "위팔 앞칸 해부",
   "region": "오른쪽 위팔",
-  "source": "일반적인 해부 실습서의 위팔 앞칸 절차를 단순화한 예시 시나리오 (교수 검수 전)",
+  "view": "anterior",
+  "summary": "앞칸 굽힘근과 안쪽 두갈래근고랑의 신경·혈관다발",
+  "source": "일반적인 해부 실습서의 위팔 앞칸 절차를 단순화한 예시 시나리오 (검수되지 않음)",
   "steps": [
     {
       "id": "skin-incision",
@@ -10,12 +12,29 @@
       "title": "피부 세로 절개",
       "instruction": "메스로 위팔 앞면 정중선을 따라 어깨 쪽에서 팔꿈치 쪽까지 피부를 세로로 절개하세요. 피부 바로 아래 가쪽에는 노쪽피부정맥이 지나갑니다.",
       "scene": {
-        "layers": { "skin": "show", "subcut": "show", "superficial": "show", "fascia": "show", "muscle": "show", "neurovascular": "show", "bone": "show" },
+        "layers": {
+          "skin": "show",
+          "subcut": "show",
+          "superficial": "show",
+          "fascia": "show",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
         "skinOpen": false,
-        "bicepsRetracted": false
+        "retracted": {}
       },
-      "incision": { "phiDeg": 0, "yFrom": 11, "yTo": -11, "tolerance": 0.8, "minCoverage": 0.8 },
-      "preserve": ["cephalic_vein", "basilic_vein"]
+      "incision": {
+        "phiDeg": 0,
+        "yFrom": 11,
+        "yTo": -11,
+        "tolerance": 0.8,
+        "minCoverage": 0.8
+      },
+      "preserve": [
+        "cephalic_vein",
+        "basilic_vein"
+      ]
     },
     {
       "id": "reflect-skin",
@@ -23,9 +42,17 @@
       "title": "피부판 젖히기",
       "instruction": "핀셋으로 절개선 가장자리를 잡고 피부를 안쪽과 가쪽으로 젖혀 피하조직을 드러내세요.",
       "scene": {
-        "layers": { "skin": "show", "subcut": "show", "superficial": "show", "fascia": "show", "muscle": "show", "neurovascular": "show", "bone": "show" },
+        "layers": {
+          "skin": "show",
+          "subcut": "show",
+          "superficial": "show",
+          "fascia": "show",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
         "skinOpen": false,
-        "bicepsRetracted": false
+        "retracted": {}
       },
       "actionLabel": "피부판 젖히기",
       "effect": "openSkin"
@@ -36,11 +63,22 @@
       "title": "표재정맥 찾기",
       "instruction": "피하조직 안에서 위팔 가쪽과 안쪽을 따라 올라가는 두 정맥을 찾아 클릭하세요.",
       "scene": {
-        "layers": { "skin": "show", "subcut": "ghost", "superficial": "show", "fascia": "ghost", "muscle": "show", "neurovascular": "show", "bone": "show" },
+        "layers": {
+          "skin": "show",
+          "subcut": "ghost",
+          "superficial": "show",
+          "fascia": "ghost",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
         "skinOpen": true,
-        "bicepsRetracted": false
+        "retracted": {}
       },
-      "targets": ["cephalic_vein", "basilic_vein"]
+      "targets": [
+        "cephalic_vein",
+        "basilic_vein"
+      ]
     },
     {
       "id": "remove-subcut",
@@ -48,9 +86,17 @@
       "title": "피하조직과 근막 제거",
       "instruction": "표재정맥은 보존하면서 피하조직을 걷어내고, 위팔근막을 세로로 열어 앞칸 근육을 드러내세요.",
       "scene": {
-        "layers": { "skin": "show", "subcut": "ghost", "superficial": "show", "fascia": "show", "muscle": "show", "neurovascular": "show", "bone": "show" },
+        "layers": {
+          "skin": "show",
+          "subcut": "ghost",
+          "superficial": "show",
+          "fascia": "show",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
         "skinOpen": true,
-        "bicepsRetracted": false
+        "retracted": {}
       },
       "actionLabel": "피하조직·근막 제거",
       "effect": "removeSubcutAndFascia"
@@ -61,11 +107,23 @@
       "title": "앞칸 근육 찾기",
       "instruction": "위팔 앞칸의 굽힘근 세 개를 찾아 클릭하세요. 하나는 가장 얕고, 하나는 그 아래 팔꿈치 쪽에, 하나는 위쪽 안쪽에 있습니다.",
       "scene": {
-        "layers": { "skin": "show", "subcut": "hide", "superficial": "show", "fascia": "hide", "muscle": "show", "neurovascular": "show", "bone": "show" },
+        "layers": {
+          "skin": "show",
+          "subcut": "hide",
+          "superficial": "show",
+          "fascia": "hide",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
         "skinOpen": true,
-        "bicepsRetracted": false
+        "retracted": {}
       },
-      "targets": ["biceps_brachii", "brachialis", "coracobrachialis"]
+      "targets": [
+        "biceps_brachii",
+        "brachialis",
+        "coracobrachialis"
+      ]
     },
     {
       "id": "retract-biceps",
@@ -73,12 +131,30 @@
       "title": "위팔두갈래근 젖히기",
       "instruction": "갈고리로 위팔두갈래근을 가쪽으로 당겨, 그 아래와 안쪽의 신경·혈관을 드러내세요.",
       "scene": {
-        "layers": { "skin": "show", "subcut": "hide", "superficial": "show", "fascia": "hide", "muscle": "show", "neurovascular": "show", "bone": "show" },
+        "layers": {
+          "skin": "show",
+          "subcut": "hide",
+          "superficial": "show",
+          "fascia": "hide",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
         "skinOpen": true,
-        "bicepsRetracted": false
+        "retracted": {}
       },
       "actionLabel": "위팔두갈래근 젖히기",
-      "effect": "retractBiceps"
+      "effect": "retract",
+      "retract": [
+        {
+          "target": "biceps_brachii",
+          "offset": [
+            -3,
+            0,
+            1.8
+          ]
+        }
+      ]
     },
     {
       "id": "neurovascular",
@@ -86,11 +162,30 @@
       "title": "신경·혈관 찾기",
       "instruction": "안쪽 두갈래근고랑의 동맥 하나와 신경 둘, 그리고 위팔두갈래근과 위팔근 사이의 신경 하나를 찾아 클릭하세요.",
       "scene": {
-        "layers": { "skin": "show", "subcut": "hide", "superficial": "show", "fascia": "hide", "muscle": "show", "neurovascular": "show", "bone": "show" },
+        "layers": {
+          "skin": "show",
+          "subcut": "hide",
+          "superficial": "show",
+          "fascia": "hide",
+          "muscle": "show",
+          "neurovascular": "show",
+          "bone": "show"
+        },
         "skinOpen": true,
-        "bicepsRetracted": true
+        "retracted": {
+          "biceps_brachii": [
+            -3,
+            0,
+            1.8
+          ]
+        }
       },
-      "targets": ["brachial_artery", "median_nerve", "ulnar_nerve", "musculocutaneous_nerve"]
+      "targets": [
+        "brachial_artery",
+        "median_nerve",
+        "ulnar_nerve",
+        "musculocutaneous_nerve"
+      ]
     }
   ]
 }

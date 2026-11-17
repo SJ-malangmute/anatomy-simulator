@@ -22,10 +22,8 @@ const SOURCES = {
   triceps_medial_head: [['FMA37695', 'FJ1480']],
   brachialis: [['FMA37668', 'FJ1486']],
   coracobrachialis: [['FMA37665', 'FJ1488']],
-  brachial_artery: [
-    ['FMA22691', 'FJ2271'],
-    ['FMA22696', 'FJ2277'], // right deep brachial artery (위팔동맥 메시에 함께 둔다)
-  ],
+  brachial_artery: [['FMA22691', 'FJ2271']],
+  deep_brachial_artery: [['FMA22696', 'FJ2277']], // right deep brachial artery
   cephalic_vein: [['FMA13325', 'FJ2272']],
   basilic_vein: [['FMA22909', 'FJ2270']],
 };
@@ -40,7 +38,15 @@ const GROUPS = {
   biceps_brachii: ['biceps_short_head', 'biceps_long_head'],
   triceps_brachii: ['triceps_long_head', 'triceps_lateral_head', 'triceps_medial_head'],
 };
-const DEEP = ['humerus', ...GROUPS.biceps_brachii, ...GROUPS.triceps_brachii, 'brachialis', 'coracobrachialis', 'brachial_artery'];
+const DEEP = [
+  'humerus',
+  ...GROUPS.biceps_brachii,
+  ...GROUPS.triceps_brachii,
+  'brachialis',
+  'coracobrachialis',
+  'brachial_artery',
+  'deep_brachial_artery',
+];
 const VEINS = ['cephalic_vein', 'basilic_vein'];
 
 // ---------- 1. 읽기와 자르기 ----------
@@ -300,17 +306,25 @@ function fasciaAt(phiDeg, y) {
 }
 const NERVE_MARGIN = 0.5; // 신경 굵기(≈0.17) + 곡선 보간 오차 여유
 let clamped = 0;
+const clampInside = ([x, y, z], count) => {
+  const r = Math.hypot(x, z);
+  const limit = fasciaAt(phiOf(x, z), y) - NERVE_MARGIN;
+  if (r <= limit) return [x, y, z];
+  if (count) clamped++;
+  return [(x * limit) / r, y, (z * limit) / r];
+};
+/** 이웃 점과 평균 내어 지그재그를 편다 (양 끝점은 고정) */
+const smooth = (pts) =>
+  pts.map((p, i) =>
+    i === 0 || i === pts.length - 1
+      ? p
+      : [0, 1, 2].map((k) => (k === 1 ? p[1] : (pts[i - 1][k] + 2 * p[k] + pts[i + 1][k]) / 4)),
+  );
 for (const [k, pts] of Object.entries(nerves)) {
-  nerves[k] = pts.map(([x, y, z]) => {
-    const r = Math.hypot(x, z);
-    const limit = fasciaAt(phiOf(x, z), y) - NERVE_MARGIN;
-    if (r > limit) {
-      clamped++;
-      const s = limit / r;
-      return [x * s, y, z * s].map(round);
-    }
-    return [x, y, z].map(round);
-  });
+  // 근막 안으로 당긴 뒤 매끄럽게 펴고, 편 결과가 다시 근막을 넘지 않도록 한 번 더 당긴다
+  let path = pts.map((p) => clampInside(p, true));
+  for (let pass = 0; pass < 3; pass++) path = smooth(path).map((p) => clampInside(p, false));
+  nerves[k] = path.map((p) => p.map(round));
   console.log(`${k}: ${pts.length} pts`);
 }
 console.log(`nerve points pulled inside fascia: ${clamped}`);

@@ -43,12 +43,17 @@ export interface Structure {
   bloodSupply?: string;
   course?: string;
   clinical?: string;
+  /** 신경 손상 시 나타나는 증상 (땡시 임상 문제용) */
+  injury?: string;
 }
+
+export type Vec3 = [number, number, number];
 
 export interface SceneState {
   layers: Partial<Record<LayerId, Visibility>>;
   skinOpen: boolean;
-  bicepsRetracted: boolean;
+  /** 젖혀 둔 구조물(또는 갈래 묶음 id) → 이동량 (cm) */
+  retracted: Record<string, Vec3>;
 }
 
 export interface IncisionSpec {
@@ -79,7 +84,9 @@ export interface IncisionStep extends StepBase {
 export interface ActionStep extends StepBase {
   type: 'action';
   actionLabel: string;
-  effect: 'openSkin' | 'removeSubcutAndFascia' | 'retractBiceps';
+  effect: 'openSkin' | 'removeSubcutAndFascia' | 'retract';
+  /** effect가 retract일 때: 갈고리로 당길 구조물들과 각각의 이동량 */
+  retract?: { target: string; offset: Vec3 }[];
 }
 
 export interface IdentifyStep extends StepBase {
@@ -93,6 +100,9 @@ export interface Scenario {
   id: string;
   title: string;
   region: string;
+  /** 시나리오를 시작할 때 카메라가 바라볼 면 */
+  view: 'anterior' | 'posterior';
+  summary: string;
   source: string;
   steps: ScenarioStep[];
 }

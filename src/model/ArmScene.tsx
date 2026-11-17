@@ -5,13 +5,12 @@ import { Html, Line, OrbitControls, useGLTF } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { STRUCTURES, STRUCTURE_BY_ID, structureName } from '../data/structures';
 import type { Structure } from '../types';
-import { SCENARIO, useStore } from '../store';
+import { hasPin, incisionPhi, useScenario, useStore } from '../store';
+import type { Vec3 } from '../types';
 import {
-  BICEPS_RETRACT_OFFSET,
   MODEL_URL,
   NERVE_CURVES,
   PIN_POINTS,
-  SKIN_HINGE_Z,
   isRealMesh,
   nerveGeometry,
   onShell,
@@ -20,6 +19,11 @@ import {
 
 const noRaycast = () => {};
 const ZERO = new THREE.Vector3();
+
+/** 구조물 자신 또는 소속 근육(갈래 묶음)에 걸린 젖힘 이동량 */
+function retractOffset(retracted: Record<string, Vec3>, id: string): Vec3 | null {
+  return retracted[id] ?? (STRUCTURE_BY_ID[id]?.group ? retracted[STRUCTURE_BY_ID[id].group!] : undefined) ?? null;
+}
 
 useGLTF.preload(MODEL_URL);
 
@@ -57,14 +61,16 @@ function StructureMesh({ s }: { s: Structure }) {
   const isSelected = useStore((st) => st.selected === s.id);
   const isHovered = useStore((st) => st.hovered === s.id);
   const mode = useStore((st) => st.mode);
-  const retracted = useStore((st) => st.bicepsRetracted);
+  const offset = useStore((st) => retractOffset(st.retracted, s.id));
+  const target = useMemo(() => (offset ? new THREE.Vector3(...offset) : ZERO), [offset]);
   const hover = useStore((st) => st.hover);
   const click = useStore((st) => st.handleStructureClick);
   const group = useRef<THREE.Group>(null);
 
   useFrame((_, dt) => {
-    if (s.group !== 'biceps_brachii' || !group.current) return;
-    group.current.position.lerp(retracted ? BICEPS_RETRACT_OFFSET : ZERO, 1 - Math.exp(-dt * 5));
+    if (!group.current) return;
+    if (group.current.position.distanceToSquared(target) < 1e-6) return;
+    group.current.position.lerp(target, 1 - Math.exp(-dt * 5));
   });
   useCursor(isHovered, 'pointer');
 
@@ -103,11 +109,19 @@ function StructureMesh({ s }: { s: Structure }) {
   );
 }
 
-/** 피부는 안쪽·가쪽 두 장으로 나뉘어 뒤 정중선을 경첩 삼아 젖혀진다 */
+/** 피부는 절개선에서 두 장으로 갈라지고, 반대편 정중선을 경첩 삼아 젖혀진다 */
 function SkinFlaps() {
   const skin = STRUCTURE_BY_ID.skin;
-  const medialGeom = useMemo(() => shellGeometry('skin', 0, 180), []);
-  const lateralGeom = useMemo(() => shellGeometry('skin', 180, 360), []);
+  const scenario = useScenario();
+  const cut = incisionPhi(scenario);
+  const { geomA, geomB, hinge } = useMemo(
+    () => ({
+      geomA: shellGeometry('skin', cut, cut + 180),
+      geomB: shellGeometry('skin', cut + 180, cut + 360),
+      hinge: onShell('skin', cut + 180, 0),
+    }),
+    [cut],
+  );
   const vis = useStore((st) => st.layerVis.skin);
   const open = useStore((st) => st.skinOpen);
   const mode = useStore((st) => st.mode);
@@ -120,7 +134,7 @@ function SkinFlaps() {
   const medial = useRef<THREE.Group>(null);
   const lateral = useRef<THREE.Group>(null);
 
-  const step = SCENARIO.steps[stepIndex];
+  const step = mode === 'dissect' ? scenario.steps[stepIndex] : undefined;
   const canCut =
     mode === 'dissect' && step?.type === 'incision' && tool === 'scalpel' && !open && !incision?.pass;
   useCursor(canCut, 'crosshair');
@@ -167,13 +181,14 @@ function SkinFlaps() {
 
   return (
     <>
-      <group ref={medial} position={[0, 0, SKIN_HINGE_Z]}>
-        <mesh geometry={medialGeom} position={[0, 0, -SKIN_HINGE_Z]} {...handlers}>
+      {/* A판(절개선→+180°)은 +각도, B판은 -각도로 경첩을 중심으로 돈다 */}
+      <group ref={medial} position={[hinge.x, 0, hinge.z]}>
+        <mesh geometry={geomA} position={[-hinge.x, 0, -hinge.z]} {...handlers}>
           {material}
         </mesh>
       </group>
-      <group ref={lateral} position={[0, 0, SKIN_HINGE_Z]}>
-        <mesh geometry={lateralGeom} position={[0, 0, -SKIN_HINGE_Z]} {...handlers}>
+      <group ref={lateral} position={[hinge.x, 0, hinge.z]}>
+        <mesh geometry={geomB} position={[-hinge.x, 0, -hinge.z]} {...handlers}>
           {material}
         </mesh>
       </group>
@@ -187,7 +202,7 @@ function IncisionOverlay() {
   const mode = useStore((st) => st.mode);
   const showGuide = useStore((st) => st.showGuide);
   const stepIndex = useStore((st) => st.stepIndex);
-  const step = SCENARIO.steps[stepIndex];
+  const step = useScenario().steps[stepIndex];
   const endStroke = useStore((st) => st.endStroke);
 
   useEffect(() => {
@@ -232,7 +247,7 @@ function Labels() {
   const mode = useStore((st) => st.mode);
   const selected = useStore((st) => st.selected);
   const found = useStore((st) => st.found);
-  const retracted = useStore((st) => st.bicepsRetracted);
+  const retracted = useStore((st) => st.retracted);
   const ids = new Set<string>();
   if (mode !== 'quiz' && selected) ids.add(selected);
   if (mode === 'dissect') found.forEach((f) => ids.add(f));
@@ -241,8 +256,8 @@ function Labels() {
       {[...ids].map((id) => {
         const p = PIN_POINTS[id];
         if (!p) return null;
-        const isBiceps = id === 'biceps_brachii' || STRUCTURE_BY_ID[id]?.group === 'biceps_brachii';
-        const pos = isBiceps && retracted ? p.clone().add(BICEPS_RETRACT_OFFSET) : p;
+        const off = retractOffset(retracted, id);
+        const pos = off ? p.clone().add(new THREE.Vector3(...off)) : p;
         return (
           <Html key={id} position={pos} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
             <div className={`label3d ${id === selected ? 'is-selected' : ''}`}>{structureName(id)}</div>
@@ -257,7 +272,8 @@ function QuizPin() {
   const quiz = useStore((st) => st.quiz);
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls) as unknown as OrbitControlsImpl | null;
-  const q = quiz && !quiz.finished ? quiz.questions[quiz.index] : null;
+  const current = quiz && !quiz.finished ? quiz.questions[quiz.index] : null;
+  const q = current && hasPin(current) ? current : null;
 
   useEffect(() => {
     if (!q) return;
@@ -287,6 +303,23 @@ function QuizPin() {
   );
 }
 
+/** 시나리오 시작 등에서 요청한 방향(φ)으로 카메라를 옮긴다 */
+function CameraRig() {
+  const request = useStore((st) => st.cameraRequest);
+  const camera = useThree((s) => s.camera);
+  const controls = useThree((s) => s.controls) as unknown as OrbitControlsImpl | null;
+  useEffect(() => {
+    if (!request) return;
+    const rad = (request.phi * Math.PI) / 180;
+    camera.position.set(44 * Math.sin(rad), 2, 44 * Math.cos(rad));
+    if (controls) {
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+  }, [request, camera, controls]);
+  return null;
+}
+
 export function ArmScene() {
   const tool = useStore((st) => st.tool);
   return (
@@ -296,6 +329,7 @@ export function ArmScene() {
       <directionalLight position={[8, 12, 14]} intensity={1.2} />
       <directionalLight position={[-10, -4, -10]} intensity={0.45} />
       <OrbitControls makeDefault enabled={tool === 'orbit'} target={[0, 0, 0]} minDistance={10} maxDistance={60} />
+      <CameraRig />
       <Suspense
         fallback={
           <Html center>

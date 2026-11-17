@@ -15,8 +15,10 @@ export interface IncisionResult {
 
 const toDeg = (r: number) => (r * 180) / Math.PI;
 const phiOf = (p: THREE.Vector3) => toDeg(Math.atan2(p.x, p.z));
+/** 두 각도의 차이를 -180°~180°로 접는다 (뒤 정중선 ±180° 근처에서 필요) */
+const wrap = (d: number) => ((((d + 180) % 360) + 360) % 360) - 180;
 /** 피부 둘레를 따라 잰 거리 (cm) */
-const arc = (dPhiDeg: number) => (Math.abs(dPhiDeg) * Math.PI * SKIN_R) / 180;
+const arc = (dPhiDeg: number) => (Math.abs(wrap(dPhiDeg)) * Math.PI * SKIN_R) / 180;
 
 /** 정맥 곡선의 y별 둘레 각도. 피부 아래 정맥이 절개선과 얼마나 가까운지 판정한다. */
 function veinPhiAt(id: string, y: number): number | null {

@@ -1,12 +1,34 @@
 import { structureName } from '../data/structures';
-import { SCENARIO, useStore } from '../store';
+import { SCENARIOS, useScenario, useStore } from '../store';
+
+function ScenarioPicker() {
+  const scenarioId = useStore((s) => s.scenarioId);
+  const startDissection = useStore((s) => s.startDissection);
+  return (
+    <div className="scenario-picker" role="radiogroup" aria-label="해부 시나리오">
+      {SCENARIOS.map((sc) => (
+        <button
+          key={sc.id}
+          role="radio"
+          aria-checked={sc.id === scenarioId}
+          className={`scenario-card ${sc.id === scenarioId ? 'on' : ''}`}
+          onClick={() => startDissection(sc.id)}
+        >
+          <strong>{sc.title}</strong>
+          <span className="muted small">{sc.summary}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function Summary() {
   const { incisionScore, damages, wrongClicks, startedAt, finishedAt, startDissection } = useStore();
+  const scenario = useScenario();
   const minutes = finishedAt ? Math.max(1, Math.round((finishedAt - startedAt) / 60000)) : 0;
   return (
     <div className="card">
-      <h3>실습 완료</h3>
+      <h3>{scenario.title} 완료</h3>
       <dl className="stats">
         <div>
           <dt>절개 점수</dt>
@@ -26,7 +48,7 @@ function Summary() {
         </div>
       </dl>
       {damages.length > 0 && <p className="bad">손상: {damages.map(structureName).join(', ')}</p>}
-      <button className="btn primary" onClick={startDissection}>
+      <button className="btn primary" onClick={() => startDissection()}>
         처음부터 다시
       </button>
     </div>
@@ -84,20 +106,19 @@ function IncisionControls() {
 
 export function DissectPanel() {
   const { stepIndex, finishedAt, actionDone, performAction, nextStep, found, damages } = useStore();
-  const step = SCENARIO.steps[stepIndex];
+  const scenario = useScenario();
+  const step = scenario.steps[stepIndex];
 
   return (
     <div className="panel">
+      <ScenarioPicker />
       <div className="scenario-head">
-        <strong>{SCENARIO.title}</strong>
-        <span className="muted"> · {SCENARIO.region}</span>
+        <strong>{scenario.title}</strong>
+        <span className="muted"> · {scenario.region}</span>
       </div>
       <ol className="steps">
-        {SCENARIO.steps.map((s, i) => (
-          <li
-            key={s.id}
-            className={finishedAt || i < stepIndex ? 'done' : i === stepIndex ? 'current' : ''}
-          >
+        {scenario.steps.map((s, i) => (
+          <li key={s.id} className={finishedAt || i < stepIndex ? 'done' : i === stepIndex ? 'current' : ''}>
             {s.title}
           </li>
         ))}
@@ -138,7 +159,7 @@ export function DissectPanel() {
                 {found.length} / {step.targets.length} 찾음 · 화면을 돌려 가며 클릭하세요.
               </p>
               <button className="btn primary" onClick={nextStep} disabled={found.length < step.targets.length}>
-                {stepIndex === SCENARIO.steps.length - 1 ? '실습 마치기' : '다음 단계'}
+                {stepIndex === scenario.steps.length - 1 ? '실습 마치기' : '다음 단계'}
               </button>
             </>
           )}
@@ -148,7 +169,7 @@ export function DissectPanel() {
       {!finishedAt && damages.length > 0 && (
         <p className="bad small">손상 기록: {damages.map(structureName).join(', ')}</p>
       )}
-      <p className="muted small">시나리오 출처: {SCENARIO.source}</p>
+      <p className="muted small">시나리오 출처: {scenario.source}</p>
     </div>
   );
 }
