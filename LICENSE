@@ -19,19 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Third-party data
-
-The 3D model files derived from BodyParts3D (public/models/arm.glb and
-src/data/generated/arm-meta.json) are NOT covered by the MIT License above.
-They are adapted from:
-
-  BodyParts3D, (c) The Database Center for Life Science
-  licensed under CC Attribution 4.0 International
-  https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html
-
-Changes: cropped to the right upper arm, straightened along the humerus axis,
-converted from mm to cm and from OBJ to glTF; skin/fascia shells and nerve
-paths were generated and are approximations.

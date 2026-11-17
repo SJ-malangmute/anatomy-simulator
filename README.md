@@ -68,6 +68,7 @@ public/models/arm.glb              변환된 실제 메시
 - 코드: [MIT](LICENSE)
 - 3D 모델 데이터(`public/models/arm.glb`, `src/data/generated/arm-meta.json`): BodyParts3D를 가공한 것으로 MIT가 아니라
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)을 따릅니다. 출처: BodyParts3D, © The Database Center for Life Science.
+  자세한 출처와 수정 내역은 [NOTICE](NOTICE)에 있습니다.
 
 ## 다음 단계
 
