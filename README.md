@@ -63,6 +63,12 @@ public/models/arm.glb              변환된 실제 메시
   ui/                              사이드바 패널, 정보 카드, 출처 화면
 ```
 
+## 라이선스
+
+- 코드: [MIT](LICENSE)
+- 3D 모델 데이터(`public/models/arm.glb`, `src/data/generated/arm-meta.json`): BodyParts3D를 가공한 것으로 MIT가 아니라
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)을 따릅니다. 출처: BodyParts3D, © The Database Center for Life Science.
+
 ## 다음 단계
 
 1. 신경과 피부층의 실제 메시를 구할 다른 출처를 찾는다 (BodyParts3D에는 위팔 신경 메시가 없음).
