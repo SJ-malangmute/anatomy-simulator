@@ -1,0 +1,69 @@
+import { useState } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { ArmScene } from './model/ArmScene';
+import { useStore, type Mode } from './store';
+import { ExplorePanel } from './ui/ExplorePanel';
+import { DissectPanel } from './ui/DissectPanel';
+import { QuizPanel } from './ui/QuizPanel';
+import { Credits, InfoCard, Toast } from './ui/Overlays';
+
+const MODES: { id: Mode; label: string }[] = [
+  { id: 'explore', label: '탐색' },
+  { id: 'dissect', label: '해부 실습' },
+  { id: 'quiz', label: '땡시' },
+];
+
+const HINTS: Record<Mode, string> = {
+  explore: '드래그: 회전 · 휠: 확대 · 우클릭 드래그: 이동',
+  dissect: '메스 도구: 피부 위를 드래그해 절개 · 시점 회전 도구로 바꾸면 화면을 돌릴 수 있습니다',
+  quiz: '드래그로 돌려 보며 핀이 가리키는 구조물을 확인하세요',
+};
+
+export default function App() {
+  const mode = useStore((s) => s.mode);
+  const setMode = useStore((s) => s.setMode);
+  const [showCredits, setShowCredits] = useState(false);
+
+  return (
+    <div className="app">
+      <aside className="sidebar">
+        <header>
+          <h1>해부 실습 시뮬레이터</h1>
+          <span className="badge">프로토타입 · BodyParts3D 기반</span>
+        </header>
+        <nav className="tabs" role="tablist">
+          {MODES.map((m) => (
+            <button
+              key={m.id}
+              role="tab"
+              aria-selected={mode === m.id}
+              className={mode === m.id ? 'on' : ''}
+              onClick={() => setMode(m.id)}
+            >
+              {m.label}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-body">
+          {mode === 'explore' && <ExplorePanel />}
+          {mode === 'dissect' && <DissectPanel />}
+          {mode === 'quiz' && <QuizPanel />}
+        </div>
+        <footer>
+          <button className="btn link" onClick={() => setShowCredits(true)}>
+            출처·라이선스
+          </button>
+        </footer>
+      </aside>
+      <main className="stage">
+        <Canvas camera={{ position: [0, 2, 44], fov: 40 }} dpr={[1, 2]}>
+          <ArmScene />
+        </Canvas>
+        <InfoCard />
+        <Toast />
+        <div className="hint">{HINTS[mode]}</div>
+      </main>
+      {showCredits && <Credits onClose={() => setShowCredits(false)} />}
+    </div>
+  );
+}
